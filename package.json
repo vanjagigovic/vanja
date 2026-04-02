@@ -1,0 +1,27 @@
+{
+  "name": "vanja",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run start:dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vanjagigovic/vanja.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/vanjagigovic/vanja/issues"
+  },
+  "homepage": "https://github.com/vanjagigovic/vanja#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
