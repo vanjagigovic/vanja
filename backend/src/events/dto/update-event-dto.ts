@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Type } from 'class-transformer';
-import { IsString, IsOptional, IsDate, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDate,
+  IsNotEmpty,
+  IsIn,
+} from 'class-validator';
+import { EVENT_TYPES } from '../event-types';
 
 export class UpdateEventDto {
   @IsOptional()
@@ -24,5 +31,6 @@ export class UpdateEventDto {
 
   @IsOptional()
   @IsString()
-  eventType?: string;
+  @IsIn(EVENT_TYPES)
+  eventType?: (typeof EVENT_TYPES)[number];
 }

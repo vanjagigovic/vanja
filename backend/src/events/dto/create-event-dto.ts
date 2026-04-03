@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { IsString, IsNotEmpty, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsIn } from 'class-validator';
+import { EVENT_TYPES } from '../event-types';
 
 export class CreateEventDto {
   @IsString()
@@ -17,6 +18,6 @@ export class CreateEventDto {
   timeZone!: string;
 
   @IsString()
-  @IsNotEmpty()
-  eventType!: string;
+  @IsIn(EVENT_TYPES)
+  eventType!: (typeof EVENT_TYPES)[number];
 }
