@@ -8,7 +8,7 @@ export const eventsTable = pgTable('events', {
   endUtc: timestamp('end_time', { withTimezone: true }).notNull(),
   timeZone: text('time_zone').notNull(),
   eventType: text('event_type').notNull(),
-  cretatedAt: timestamp('created_at', { withTimezone: true })
+  createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true })
