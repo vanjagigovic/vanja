@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Global, Module } from '@nestjs/common';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
@@ -15,7 +16,7 @@ if (!env.DATABASE_URL) {
       provide: 'DATABASE_CONNECTION',
       useFactory: () => {
         const pool = new Pool({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           connectionString: env.DATABASE_URL,
         });
         return drizzle(pool);
