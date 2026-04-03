@@ -4,10 +4,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { env } from '../config/env';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-if (!env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not defined');
-}
+export const DATABASE_CONNECTION = 'DATABASE_CONNECTION';
 
 @Global()
 @Module({
@@ -17,7 +14,7 @@ if (!env.DATABASE_URL) {
       useFactory: () => {
         const pool = new Pool({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          connectionString: env.DATABASE_URL,
+          connectionString: env.DATABASE_URL!,
         });
         return drizzle(pool);
       },
