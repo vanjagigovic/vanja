@@ -1,13 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { Type } from 'class-transformer';
 import {
   IsString,
   IsOptional,
-  IsDate,
   IsNotEmpty,
   IsIn,
+  IsBoolean,
+  ValidateIf,
+  IsDateString,
 } from 'class-validator';
 import { EVENT_TYPES } from '../event-types';
+import { CreateEventDto } from './create-event-dto';
 
 export class UpdateEventDto {
   @IsOptional()
@@ -16,14 +18,12 @@ export class UpdateEventDto {
   title?: string;
 
   @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  startUtc?: Date;
+  @IsDateString()
+  startUtc?: string;
 
   @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  endUtc?: Date;
+  @IsDateString()
+  endUtc?: string;
 
   @IsOptional()
   @IsString()
@@ -33,4 +33,20 @@ export class UpdateEventDto {
   @IsString()
   @IsIn(EVENT_TYPES)
   eventType?: (typeof EVENT_TYPES)[number];
+
+  @IsOptional()
+  @IsBoolean()
+  repeatWeekly?: boolean;
+
+  @ValidateIf(
+    (object: CreateEventDto) =>
+      object.repeatWeekly === true && object.repeatUntilUtc !== undefined,
+  )
+  @IsOptional()
+  @IsDateString()
+  repeatUntilUtc?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  reminderEnabled?: boolean;
 }
