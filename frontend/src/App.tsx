@@ -1,5 +1,5 @@
 import { Calendar } from "./components/Calendar";
 
-export const App = () => {
+export function App() {
   return <Calendar />;
 };
