@@ -48,9 +48,9 @@ export function useCalendarViewModel({
     const firstCell = getWeekStart(monthStart);
     return Array.from({ length: 42 }, (_, index) => addDays(firstCell, index));
   }, [currentDate, currentView]);
-  console.log("currentView:", currentView);
-  console.log("visibleDays:", visibleDays);
-  console.log("monthCells:", monthCells);
+  // console.log("currentView:", currentView);
+  // console.log("visibleDays:", visibleDays);
+  // console.log("monthCells:", monthCells);
 
   return {
     rangeLabel,

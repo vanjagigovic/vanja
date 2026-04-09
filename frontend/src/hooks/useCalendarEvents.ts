@@ -1,29 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
-import type { TFunction } from "i18next";
-import { eventsApi } from "../api/events-api";
-import {
-  getApiErrorState,
-  getErrorMessage,
-} from "../helpers/client-state-helpers";
-import type {
-  CalendarEvent,
-  CalendarViewMode,
-  EventPayload,
-} from "../types/types";
-import { runCalendarMutation } from "../helpers/calendar-events-helpers";
-import {
-  buildRangeForView,
-  scheduledReminderNotifications,
-} from "../utils/calendar-utils";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 
-interface UseCalendarEventParams {
+import { eventsApi } from '../api/events-api';
+import { runCalendarMutation } from '../helpers/calendar-events-helpers';
+import { buildRangeForView, scheduleReminderNotifications } from '../utils/calendar-utils';
+import { getApiErrorState, getErrorMessage } from '../helpers/client-state-helpers';
+import type { CalendarViewMode, EventPayload } from '../types/types';
+
+interface UseCalendarEventsParams {
   currentView: CalendarViewMode;
   currentDate: Date;
   viewTimeZone: string;
   t: TFunction;
   onAfterMutation?: () => void;
 }
-console.log("FETCH CALLED");
 
 export function useCalendarEvents({
   currentView,
@@ -31,69 +22,92 @@ export function useCalendarEvents({
   viewTimeZone,
   t,
   onAfterMutation,
-}: UseCalendarEventParams) {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [suggestion, setSuggestion] = useState<{
-    startUtc: string;
-    endUtc: string;
-  } | null>(null);
-  const [successMessage, setSuccessMessage] = useState("");
+}: UseCalendarEventsParams) {
+  const queryClient = useQueryClient();
+
+  const [actionError, setActionError] = useState('');
+  const [suggestion, setSuggestion] = useState<{ startUtc: string; endUtc: string } | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const range = useMemo(
+    () => buildRangeForView(currentView, currentDate, viewTimeZone),
+    [currentDate, currentView, viewTimeZone],
+  );
 
   const handleApiError = useCallback((err: unknown) => {
     const apiErrorState = getApiErrorState(err);
-    setError(apiErrorState.message);
-    if (apiErrorState.suggestedTime) {
-      setSuggestion(apiErrorState.suggestedTime);
-    }
-    setDialogOpen(true);
-    console.log("SUGGESTION FROM API:", apiErrorState.suggestedTime);
+    setActionError(apiErrorState.message);
+    setSuggestion(apiErrorState.suggestedTime);
   }, []);
 
-
-  const loadEvents = useCallback(async () => {
-    setLoading(true);
-    try {
-      const range = buildRangeForView(currentView, currentDate, viewTimeZone);
-      const result = await eventsApi.list(
-        range.rangeStartUtc,
-        range.rangeEndUtc,
+  const eventsQuery = useQuery({
+    queryKey: [
+      'calendar-events',
+      currentView,
+      range.rangeStartUtc,
+      range.rangeEndUtc,
+      viewTimeZone,
+    ],
+    queryFn: async () => {
+      return eventsApi.list({
+        rangeStartUtc: range.rangeStartUtc,
+        rangeEndUtc: range.rangeEndUtc,
         viewTimeZone,
-      );
-      // const expanded = result.flatMap(expandWeeklyEvent);
-      // setEvents(expanded);
-      setEvents(result);
-      setError("");
-    } catch (err) {
-      setError(getErrorMessage(err, "Failed to load events"));
-    } finally {
-      setLoading(false);
-    }
-  }, [currentDate, currentView, viewTimeZone]);
+      });
+    },
+  });
+
+  const createEventMutation = useMutation({
+    mutationFn: (payload: EventPayload) => eventsApi.create(payload),
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: Partial<EventPayload>;
+    }) => eventsApi.update(id, payload),
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: (id: string) => eventsApi.delete(id),
+  });
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const events = eventsQuery.data ?? [];
+  const loading = eventsQuery.isPending;
+
+  const error =
+    actionError ||
+    (eventsQuery.error
+      ? getErrorMessage(eventsQuery.error, 'Failed to load events')
+      : '');
 
   useEffect(() => {
-    loadEvents();
-  }, [currentView, loadEvents, viewTimeZone]);
+    scheduleReminderNotifications(events, viewTimeZone, t);
+  }, [events, t, viewTimeZone]);
 
-  useEffect(
-    () => scheduledReminderNotifications(events, viewTimeZone, t),
-    [events, t, viewTimeZone],
-  );
+  const loadEvents = useCallback(async () => {
+    setActionError('');
+    await queryClient.invalidateQueries({
+      queryKey: ['calendar-events'],
+    });
+  }, [queryClient]);
 
-  const runMutiation = useCallback(
+  const runMutation = useCallback(
     async (
       mutation: () => Promise<unknown>,
-      successTranslationKey: "eventCreated" | "eventUpdated" | "eventDeleted",
+      successTranslationKey: 'eventCreated' | 'eventUpdated' | 'eventDeleted',
       options?: { rethrow?: boolean },
     ) => {
+      setActionError('');
+
       await runCalendarMutation({
         mutation,
         loadEvents,
         setSuggestion,
-        dialogOpen,
-        setDialogOpen,
         setSuccessMessage,
         t,
         successTranslationKey,
@@ -107,27 +121,34 @@ export function useCalendarEvents({
 
   const handleCreate = useCallback(
     async (payload: EventPayload) => {
-      await runMutiation(() => eventsApi.create(payload), "eventCreated", {
-        rethrow: true,
-      });
+      await runMutation(
+        () => createEventMutation.mutateAsync(payload),
+        'eventCreated',
+        { rethrow: true },
+      );
     },
-    [runMutiation],
+    [createEventMutation, runMutation],
   );
 
   const handleUpdate = useCallback(
     async (id: string, payload: Partial<EventPayload>) => {
-      await runMutiation(() => eventsApi.update(id, payload), "eventUpdated", {
-        rethrow: true,
-      });
+      await runMutation(
+        () => updateEventMutation.mutateAsync({ id, payload }),
+        'eventUpdated',
+        { rethrow: true },
+      );
     },
-    [runMutiation],
+    [runMutation, updateEventMutation],
   );
 
   const handleDelete = useCallback(
     async (id: string) => {
-      await runMutiation(() => eventsApi.delete(id), "eventDeleted");
+      await runMutation(
+        () => deleteEventMutation.mutateAsync(id),
+        'eventDeleted',
+      );
     },
-    [runMutiation],
+    [deleteEventMutation, runMutation],
   );
 
   return {
