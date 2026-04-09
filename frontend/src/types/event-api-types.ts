@@ -16,7 +16,7 @@ export interface EventResponseDto {
   timeZone: string;
   eventType: EventApiType;
   repeatWeekly: boolean;
-  repeatUntilUct?: string | null;
+  repeatUntilUtc?: string | null;
   reminderEnable: boolean;
   occurrenceId: string;
   baseEventId: string;
@@ -30,7 +30,7 @@ export interface CreateEventRequest {
   timeZone: string;
   eventType: EventApiType;
   repeatWeekly?: boolean;
-  repeatUntilUct?: string;
+  repeatUntilUtc?: string;
   reminderEnabled?: boolean;
 }
 
@@ -41,7 +41,7 @@ export interface UpdateEventRequest {
   timeZone?: string;
   eventType?: EventApiType;
   repeatWeekly?: boolean;
-  repeatUntilUct?: string;
+  repeatUntilUtc?: string;
   reminderEnabled?: boolean;  
 }
 
