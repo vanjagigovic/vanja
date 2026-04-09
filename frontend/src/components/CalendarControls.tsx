@@ -17,9 +17,24 @@ import TodayIcon from "@mui/icons-material/Today";
 import { motion } from "framer-motion";
 import type { CalendarViewMode } from "../types/types";
 import { pressableMotionProps } from "../helpers/motion-presets";
-import { calendarActionGroupSx, calendarControlsContentSx, calendarHeroSectionSx, calendarHeroTitleSx, calendarNavButtonSx, calendarPrimaryActionSx, calendarSurfaceCardSx, calendarTimeZoneControlSx, calendarTimeZoneMenuProps, calendarTodayButtonSx, calendarTopActionBarSx, calendarViewButtonSx, calendarViewSwitcherSx } from "../styles/calendarStyles";
+import {
+  calendarActionGroupSx,
+  calendarControlsContentSx,
+  calendarHeroSectionSx,
+  calendarHeroTitleSx,
+  calendarNavButtonSx,
+  calendarNavGroupSx,
+  calendarPrimaryActionSx,
+  calendarSurfaceCardSx,
+  calendarTimeZoneControlSx,
+  calendarTimeZoneMenuProps,
+  calendarTodayButtonSx,
+  calendarTopActionBarSx,
+  calendarViewButtonSx,
+  calendarViewSwitcherSx,
+} from "../styles/calendarStyles";
 
-interface CalendarControlProps {
+interface CalendarControlsProps {
   isMobile: boolean;
   currentView: CalendarViewMode;
   rangeLabel: string;
@@ -55,72 +70,78 @@ export function CalendarControls({
   onCreateEvent,
   onViewTimeZoneChange,
   onChangeView,
-}: CalendarControlProps) {
+}: CalendarControlsProps) {
   return (
     <Card sx={calendarSurfaceCardSx}>
       <CardContent sx={calendarControlsContentSx}>
-        <Box sx={calendarTopActionBarSx}></Box>
+        <Box sx={calendarTopActionBarSx}>
+          <Box />
 
-        <Box sx={calendarHeroSectionSx}>
-          <Typography component="h1" sx={calendarHeroTitleSx}>
-            {rangeLabel}
-          </Typography>
-          <Box sx={calendarNavButtonSx}>
+          <Box sx={calendarHeroSectionSx}>
+            <Typography component="h1" sx={calendarHeroTitleSx}>
+              {rangeLabel}
+            </Typography>
+
+            <Box sx={calendarNavGroupSx}>
+              <Button
+                component={motion.button}
+                {...pressableMotionProps}
+                sx={calendarNavButtonSx}
+                onClick={onPrevious}
+              >
+                <ChevronLeftIcon />
+              </Button>
+
+              <Button
+                component={motion.button}
+                {...pressableMotionProps}
+                sx={calendarTodayButtonSx}
+                onClick={onToday}
+                startIcon={<TodayIcon />}
+              >
+                {todayLabel}
+              </Button>
+
+              <Button
+                component={motion.button}
+                {...pressableMotionProps}
+                sx={calendarNavButtonSx}
+                onClick={onNext}
+              >
+                <ChevronRightIcon />
+              </Button>
+            </Box>
+          </Box>
+
+          <Box sx={calendarActionGroupSx}>
+            <FormControl sx={calendarTimeZoneControlSx} size="small">
+              <InputLabel shrink>{viewTimeZoneLabel}</InputLabel>
+
+              <Select
+                label={viewTimeZoneLabel}
+                value={viewTimeZone}
+                onChange={(event) => onViewTimeZoneChange(event.target.value)}
+                MenuProps={calendarTimeZoneMenuProps}
+              >
+                {timeZones.map((zone) => (
+                  <MenuItem key={zone} value={zone}>
+                    {zone}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
             <Button
               component={motion.button}
               {...pressableMotionProps}
-              sx={calendarNavButtonSx}
-              onClick={onPrevious}
+              variant="contained"
+              sx={calendarPrimaryActionSx}
+              startIcon={<AddIcon />}
+              onClick={onCreateEvent}
             >
-              <ChevronLeftIcon />
-            </Button>
-            <Button
-              component={motion.button}
-              {...pressableMotionProps}
-              sx={calendarTodayButtonSx}
-              onClick={onToday}
-              startIcon={<TodayIcon />}
-            >
-              {todayLabel}
-            </Button>
-            <Button
-              component={motion.button}
-              {...pressableMotionProps}
-              sx={calendarNavButtonSx}
-              onClick={onNext}
-            >
-              <ChevronRightIcon />
+              {newEventLabel}
             </Button>
           </Box>
-        </Box>
-
-        <Box sx={calendarActionGroupSx}>
-          <FormControl sx={calendarTimeZoneControlSx} size="small">
-            <InputLabel shrink>{viewTimeZoneLabel}</InputLabel>
-            <Select
-              label={viewTimeZoneLabel}
-              value={viewTimeZone}
-              onChange={(event) => onViewTimeZoneChange(event.target.value)}
-              MenuProps={calendarTimeZoneMenuProps}
-            >
-              {timeZones.map((zone) => (
-                <MenuItem key={zone} value={zone}>
-                  {zone}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button
-            component={motion.button}
-            {...pressableMotionProps}
-            variant="contained"
-            sx={calendarPrimaryActionSx}
-            startIcon={<AddIcon />}
-            onClick={onCreateEvent}
-          >
-            {" "}
-            {newEventLabel}
-          </Button>
         </Box>
 
         <ButtonGroup
@@ -131,11 +152,11 @@ export function CalendarControls({
         >
           {(["day", "week", "month"] as CalendarViewMode[]).map((view) => (
             <Button
+              
               component={motion.button}
               {...pressableMotionProps}
               key={view}
-              sx={calendarViewButtonSx(view===currentView)}
-              
+              sx={calendarViewButtonSx(view === currentView)}
               onClick={() => onChangeView(view)}
             >
               {viewLabels[view]}
