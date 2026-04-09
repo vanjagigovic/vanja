@@ -22,11 +22,9 @@ export function CalendarFeedback({
   viewTimeZone,
   onUseSuggestedTime,
 }: CalendarFeedbackProps) {
-  console.log("RENDER suggestion:", suggestion);
-  console.log("RENDER error:", error);
   const suggestionRange = suggestion
-    ? `${DateTime.fromISO(suggestion.startUtc, { zone: "utc" }).setZone(viewTimeZone).toFormat("ff")} - ${DateTime.fromISO(suggestion.endUtc, { zone: "utc" }).setZone(viewTimeZone).toFormat("t")}`
-    : "";
+    ? `${DateTime.fromISO(suggestion.startUtc, { zone: 'utc' }).setZone(viewTimeZone).toFormat('ff')} - ${DateTime.fromISO(suggestion.endUtc, { zone: 'utc' }).setZone(viewTimeZone).toFormat('t')}`
+    : '';
 
   return (
     <>

@@ -1,7 +1,13 @@
-import { Box, Card, Stack, Typography } from '@mui/material';
-import { DateTime } from 'luxon';
-import { CalendarEventChip } from './CalendarEventChip';
-import { eventOccursOnDateInZone, formatDateKey } from '../utils/calendar-utils';
+import { Box, Card, Stack, Typography } from "@mui/material";
+import { DateTime } from "luxon";
+import { useMemo } from "react";
+
+import { CalendarEventChip } from "./CalendarEventChip";
+import {
+  eventOccursOnDateInZone,
+  formatDateKey,
+} from "../utils/calendar-utils";
+
 import {
   monthGridDayCardSx,
   monthGridDayContentSx,
@@ -9,10 +15,19 @@ import {
   monthGridHeaderCardSx,
   monthGridRowSx,
   monthGridShellSx,
-} from '../styles/calendarStyles';
-import type { CalendarEvent } from '../types/types';
+} from "../styles/calendarStyles";
 
-const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+import type { CalendarEvent } from "../types/types";
+
+const WEEKDAY_LABELS = [
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+  "Sun",
+] as const;
 
 interface CalendarMonthGridProps {
   cells: Date[];
@@ -22,14 +37,6 @@ interface CalendarMonthGridProps {
   isMobile: boolean;
   onOpenCreateForDay: (day: Date) => void;
   onEditEvent: (event: CalendarEvent) => void;
-}
-
-function chunkArray<T>(array: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    result.push(array.slice(i, i + size));
-  }
-  return result;
 }
 
 export function CalendarMonthGrid({
@@ -44,69 +51,72 @@ export function CalendarMonthGrid({
   const todayKey = formatDateKey(new Date());
   const selectedDayKey = formatDateKey(currentDate);
 
-  const weeks = chunkArray(cells, 7);
+  /**
+   * Pre-group events by day (performance boost)
+   */
+  const eventsByDay = useMemo(() => {
+    const map: Record<string, CalendarEvent[]> = {};
+
+    for (const day of cells) {
+      const key = formatDateKey(day);
+
+      map[key] = events.filter((event) =>
+        eventOccursOnDateInZone(event, day, viewTimeZone),
+      );
+    }
+
+    return map;
+  }, [cells, events, viewTimeZone]);
 
   return (
     <Box sx={monthGridShellSx}>
       <Box sx={monthGridRowSx}>
         {WEEKDAY_LABELS.map((label) => (
           <Card key={label} variant="outlined" sx={monthGridHeaderCardSx}>
-            <Typography variant={isMobile ? 'caption' : 'subtitle2'}>
+            <Typography variant={isMobile ? "caption" : "subtitle2"}>
               {label}
             </Typography>
           </Card>
         ))}
       </Box>
 
-      {weeks.map((week, weekIndex) => (
-        <Box key={weekIndex} sx={monthGridRowSx}>
-          {week.map((day) => {
-            const dayKey = formatDateKey(day);
-            const isToday = dayKey === todayKey;
-            const isSelected = dayKey === selectedDayKey;
-            const isOutsideMonth =
-              day.getMonth() !== currentDate.getMonth();
+      <Box sx={monthGridRowSx}>
+        {cells.map((day) => {
+          const dayKey = formatDateKey(day);
+          const isToday = dayKey === todayKey;
+          const isSelected = dayKey === selectedDayKey;
+          const isOutsideMonth = day.getMonth() !== currentDate.getMonth();
 
-            const dayEvents = events
-              .filter((event) =>
-                eventOccursOnDateInZone(event, day, viewTimeZone)
-              )
-              .slice(0, isMobile ? 2 : 3);
+          const dayEvents = eventsByDay[dayKey] ?? [];
 
-            return (
-              <Card
-                key={dayKey}
-                variant="outlined"
-                sx={monthGridDayCardSx(
-                  isToday,
-                  isSelected,
-                  isOutsideMonth
-                )}
-                onClick={() => onOpenCreateForDay(day)}
+          return (
+            <Card
+              key={dayKey}
+              variant="outlined"
+              sx={monthGridDayCardSx(isToday, isSelected, isOutsideMonth)}
+              onClick={() => onOpenCreateForDay(day)}
+            >
+              <Typography
+                variant={isMobile ? "caption" : "subtitle2"}
+                sx={monthGridDayNumberSx(isOutsideMonth)}
               >
-                <Typography
-                  variant={isMobile ? 'caption' : 'subtitle2'}
-                  sx={monthGridDayNumberSx(isOutsideMonth)}
-                >
-                  {DateTime.fromJSDate(day)
-                    .setZone(viewTimeZone)
-                    .day}
-                </Typography>
-                <Stack spacing={0.5} sx={monthGridDayContentSx}>
-                  {dayEvents.map((event) => (
-                    <CalendarEventChip
-                      key={event.occurrenceId}
-                      event={event}
-                      isMobile={isMobile}
-                      onClick={() => onEditEvent(event)}
-                    />
-                  ))}
-                </Stack>
-              </Card>
-            );
-          })}
-        </Box>
-      ))}
+                {DateTime.fromJSDate(day).setZone(viewTimeZone).day}
+              </Typography>
+
+              <Stack spacing={0.5} sx={monthGridDayContentSx}>
+                {dayEvents.slice(0, isMobile ? 2 : 3).map((event) => (
+                  <CalendarEventChip
+                    key={event.occurrenceId}
+                    event={event}
+                    isMobile={isMobile}
+                    onClick={() => onEditEvent(event)}
+                  />
+                ))}
+              </Stack>
+            </Card>
+          );
+        })}
+      </Box>
     </Box>
   );
 }
