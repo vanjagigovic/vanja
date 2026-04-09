@@ -19,8 +19,8 @@ async function startApp() {
     }),
   );
 
-  await app.listen(process.env.PORT || 3000);
-  console.info(`Backend is running on port ${process.env.PORT || 3000}`);
+  await app.listen(process.env.PORT || 3001);
+  console.info(`Backend is running on port ${process.env.PORT || 3001}`);
 }
 //startApp()
 //Start NestJS app and handle any startup errors explicitly - ignoring ESLint warning
