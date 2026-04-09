@@ -5,10 +5,15 @@ import { buildEventDetailPath, buildEventsListPath, getEventsBasePath } from "..
 import { mapEventPayloadToCreateEventRequest, mapEventPayloadToUpdateEventRequest, mapEventResponseToCalendarEvent, mapEventResponsesToCalendarEvents } from "../helpers/event-api-mappers";
 import type { CalendarEvent, EventPayload } from "../types/types";
 
+type ListEventsParams = {
+    rangeStartUtc?: string;
+    rangeEndUtc?: string;
+    viewTimeZone?: string;
+}
 
 export const eventsApi = { 
-    list: async (rangeStartUtc?: string, rangeEndUtc?: string, viewTimeZone?: string) : Promise<CalendarEvent[]> => {
-        const response = await apiRequest<EventResponseDto[]>(buildEventsListPath({rangeStartUtc, rangeEndUtc, viewTimeZone}));
+    list: async (params: ListEventsParams = {}) : Promise<CalendarEvent[]> => {
+        const response = await apiRequest<EventResponseDto[]>(buildEventsListPath(params));
         return mapEventResponsesToCalendarEvents(response);
     },
     create: async (payload: EventPayload): Promise<CalendarEvent> => {
