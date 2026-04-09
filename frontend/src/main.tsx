@@ -1,16 +1,24 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { App } from './App';
-import './config/i18n';
-import './styles.css';
-import { appTheme } from './theme/theme';
-import { CssBaseline, ThemeProvider } from '@mui/material'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { App } from "./App";
+import "./config/i18n";
+import "./styles.css";
+import { appTheme } from "./theme/theme";
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter } from "react-router-dom";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const queryClient = new QueryClient();
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeProvider theme={appTheme}>
-      <CssBaseline />
-      <App /> 
-    </ThemeProvider>
-  </React.StrictMode>
-)
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <ThemeProvider theme={appTheme}>
+          <CssBaseline />
+          <App />
+        </ThemeProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  </React.StrictMode>,
+);
