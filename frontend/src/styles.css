@@ -1,7 +1,7 @@
 :root {
   font-family: Inter, system-ui, sans-serif;
-  color: #192b37;
-  background: #f5f7fa;
+  color: #e6edf3;
+  background: #0b1220;
 }
 
 * {
@@ -11,7 +11,8 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f5f7fa;
+  background: #0b1220;
+  color: #e6edf3;
 }
 
 button,
@@ -39,9 +40,10 @@ button {
 .state-card,
 .time-grid-wrapper,
 .month-view {
-  background: #ffffff;
+  background: #111a2e;
   border-radius: 16px;
-  box-shadow: 0 10px 30px #192b3714;
+  border: 1px solid #22304a;
+  box-shadow: 0 12px 35px #00000066;
 }
 
 /* Topbar */
@@ -60,7 +62,7 @@ button {
 
 .topbar p {
   margin: 0.25rem 0 0;
-  color: #55636f;
+  color: #9aa7b5;
 }
 
 /* Buttons */
@@ -70,8 +72,9 @@ button {
   border: none;
   border-radius: 10px;
   padding: 0.7rem 1rem;
-  background: #ff5640;
+  background: #ff4d3d;
   color: #ffffff;
+  box-shadow: 0 8px 18px #ff4d3d33;
 }
 
 /* Toolbar */
@@ -89,7 +92,8 @@ button {
 }
 
 .toolbar-group button.active {
-  background: #192b37;
+  background: #e6edf3;
+  color: #0b1220;
 }
 
 /* State */
@@ -99,7 +103,7 @@ button {
 
 .state-card.error,
 .error-message {
-  color: #c0392b;
+  color: #ff6b6b;
 }
 
 /* Time grid */
@@ -119,40 +123,42 @@ button {
 .day-header,
 .month-weekday {
   padding: 0.75rem;
-  background: #eef2f6;
+  background: #16233d;
   border-radius: 10px;
   text-align: center;
   font-weight: 600;
+  color: #e6edf3;
 }
 
 .time-gutter {
   position: sticky;
   left: 0;
-  background: #fff;
+  background: #111a2e;
   z-index: 1;
 }
 
 .time-label {
   height: 72px;
   font-size: 0.8rem;
-  color: #6b7785;
+  color: #9aa7b5;
 }
 
 .day-column {
   position: relative;
   min-width: 180px;
-  border: 1px solid #e5ebf0;
+  border: 1px solid #22304a;
   border-radius: 12px;
-  background: linear-gradient(to bottom, #192b370f 1px, #ffffff00 1px);
+  background: linear-gradient(to bottom, #ffffff10 1px, transparent 1px);
   background-size: 100% 36px;
 }
 
+/* Slot line */
 .slot-line {
   position: absolute;
   left: 0;
   right: 0;
   height: 1px;
-  background: #192b370f;
+  background: #ffffff1a;
 }
 
 /* Events */
@@ -163,12 +169,12 @@ button {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  text-align: left;
   border: none;
   border-radius: 10px;
-  background: #ff5640;
+  background: #ff4d3d;
   color: #ffffff;
   padding: 0.45rem 0.5rem;
+  box-shadow: 0 10px 20px #00000055;
   overflow: hidden;
 }
 
@@ -190,22 +196,22 @@ button {
 
 .month-cell {
   min-height: 140px;
-  border: 1px solid #e5ebf0;
+  border: 1px solid #22304a;
   border-radius: 12px;
-  background: #fff;
+  background: #111a2e;
   padding: 0.75rem;
-  text-align: left;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
 .month-cell--muted {
-  opacity: 0.55;
+  opacity: 0.4;
 }
 
 .month-day-number {
   font-weight: 700;
+  color: #e6edf3;
 }
 
 .month-events {
@@ -215,7 +221,7 @@ button {
 }
 
 .month-event-chip {
-  background: #ff5640;
+  background: #ff4d3d;
   color: #ffffff;
   border-radius: 8px;
   padding: 0.3rem 0.45rem;
@@ -225,7 +231,7 @@ button {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: #192b3773;
+  background: #000000aa;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -234,14 +240,16 @@ button {
 
 .modal {
   width: min(520px, 100%);
-  background: #ffffff;
+  background: #111a2e;
+  border: 1px solid #22304a;
   border-radius: 16px;
   padding: 1.25rem;
-  box-shadow: 0 20px 50px #192b3733;
+  box-shadow: 0 25px 60px #00000088;
 }
 
 .modal h2 {
   margin-top: 0;
+  color: #e6edf3;
 }
 
 .modal-form {
@@ -255,13 +263,16 @@ button {
   flex-direction: column;
   gap: 0.35rem;
   font-weight: 500;
+  color: #cbd5e1;
 }
 
 .modal-form input,
 .modal-form select {
-  border: 1px solid #d8e0e7;
+  border: 1px solid #22304a;
   border-radius: 10px;
   padding: 0.75rem;
+  background: #0b1220;
+  color: #e6edf3;
 }
 
 /* Modal actions */
@@ -280,12 +291,12 @@ button {
 /* Ghost buttons */
 .ghost {
   background: transparent !important;
-  color: #192b37 !important;
-  border: 1px solid #d8e0e7 !important;
+  color: #e6edf3 !important;
+  border: 1px solid #22304a !important;
 }
 
 .ghost.danger {
-  color: #c0392b !important;
+  color: #ff6b6b !important;
 }
 
 /* Responsive */

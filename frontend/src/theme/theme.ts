@@ -1,5 +1,6 @@
 import { createTheme } from "@mui/material/styles";
 import type { EventType } from "../types/types";
+
 declare module "@mui/material/styles" {
   interface Theme {
     custom: {
@@ -95,161 +96,189 @@ declare module "@mui/material/styles" {
     custom?: Theme["custom"];
   }
 }
+
 export const appTheme = createTheme({
   palette: {
     primary: {
-      main: "#8B7CFF",
-      light: "#E4DEFF",
-      dark: "#6F5CF4",
+      main: "#7C5CFF",
+      light: "#E9E3FF",
+      dark: "#5B3DF0",
       contrastText: "#FFFFFF",
     },
     secondary: {
-      main: "#6CCBFF",
-      light: "#E2F6FF",
-      dark: "#47AEE6",
-      contrastText: "#11324A",
+      main: "#00D4FF",
+      light: "#D9F8FF",
+      dark: "#00A6CC",
+      contrastText: "#06222B",
     },
-    background: { default: "#F7F6FF", paper: "#FFFFFF" },
-    text: { primary: "#352F5F", secondary: "#7A739A" },
-    divider: "#8B7CFF24",
+    background: { default: "#F6F5FF", paper: "#FFFFFF" },
+    text: { primary: "#2A2450", secondary: "#6B628F" },
+    divider: "#7C5CFF33",
+
     success: {
-      main: "#7DCCB4",
-      light: "#E6FAF2",
-      dark: "#58AA91",
-      contrastText: "#1E4A3C",
+      main: "#22C55E",
+      light: "#DCFCE7",
+      dark: "#15803D",
+      contrastText: "#052E16",
     },
     info: {
-      main: "#6CCBFF",
-      light: "#EAF7FF",
-      dark: "#3EAEDD",
-      contrastText: "#173B57",
+      main: "#38BDF8",
+      light: "#E0F2FE",
+      dark: "#0284C7",
+      contrastText: "#082F49",
     },
     error: {
-      main: "#E38AB4",
-      light: "#FDEBF4",
-      dark: "#C06490",
-      contrastText: "#5C2040",
+      main: "#FB7185",
+      light: "#FFE4E6",
+      dark: "#E11D48",
+      contrastText: "#4A0B1A",
     },
   },
-  shape: { borderRadius: 10 },
+
+  shape: { borderRadius: 12 },
+
   typography: {
     fontFamily: "Inter, system-ui, sans-serif",
-    h3: { fontWeight: 700, letterSpacing: "-0.04em" },
-    h4: { fontWeight: 700, letterSpacing: "-0.03em" },
-    h6: { fontWeight: 700, letterSpacing: "-0.02em" },
-    button: { textTransform: "none", fontWeight: 700 },
+    h3: { fontWeight: 800, letterSpacing: "-0.04em" },
+    h4: { fontWeight: 800, letterSpacing: "-0.03em" },
+    h6: { fontWeight: 800, letterSpacing: "-0.02em" },
+    button: { textTransform: "none", fontWeight: 800 },
   },
+
   custom: {
     layout: {
-      pageBackground: "#F3F1FF",
-      pageOverlayPrimary: "#C77DFF1A",
-      pageOverlaySecondary: "#6CCBFF29",
+      pageBackground: "#F3F0FF",
+      pageOverlayPrimary: "#A855F71F",
+      pageOverlaySecondary: "#00D4FF26",
     },
+
     glass: {
       toolbar: {
-        background: "#FFFFFFB8",
-        border: "#8B7CFF1F",
-        shadow: "0 16px 40px #7864FF1A",
-        blur: "blur(14px)",
+        background: "#FFFFFFCC",
+        border: "#7C5CFF33",
+        shadow: "0 18px 50px #7C5CFF26",
+        blur: "blur(16px)",
       },
       surface: {
-        background: "#FFFFFFCC",
-        border: "#8B7CFF1A",
-        shadow: "0 4px 20px #7864FF14",
-        blur: "blur(12px)",
+        background: "#FFFFFFE6",
+        border: "#7C5CFF22",
+        shadow: "0 10px 30px #7C5CFF1A",
+        blur: "blur(14px)",
       },
       input: {
-        background: "#FFFFFFD1",
-        border: "#8B7CFF1F",
-        hoverBorder: "#6CCBFF52",
-        focusBorder: "#8B7CFF6B",
-        shadow: "0 8px 18px #7864FF0F",
+        background: "#FFFFFFF2",
+        border: "#7C5CFF33",
+        hoverBorder: "#00D4FF66",
+        focusBorder: "#7C5CFFAA",
+        shadow: "0 10px 24px #7C5CFF14",
       },
       menu: {
-        background: "linear-gradient(180deg, #FFFFFFF0 0%, #F6F3FFFA 100%)",
-        border: "#8B7CFF24",
-        shadow: "0 16px 36px #7864FF24",
-        selectedBackground: "#8B7CFF1F",
-        selectedHoverBackground: "#8B7CFF2E",
-        hoverBackground: "#6CCBFF1A",
+        background: "linear-gradient(180deg, #FFFFFF 0%, #F6F3FF 100%)",
+        border: "#7C5CFF33",
+        shadow: "0 20px 50px #7C5CFF22",
+        selectedBackground: "#7C5CFF22",
+        selectedHoverBackground: "#7C5CFF33",
+        hoverBackground: "#00D4FF22",
       },
-      overlay: { background: "#655C9A38", blur: "blur(10px)" },
+      overlay: { background: "#2A245088", blur: "blur(12px)" },
     },
+
     text: {
-      hero: "#352F5F",
-      muted: "#8C85AA",
-      subtle: "#938BB3",
-      accent: "#6F5CF4",
-      accentStrong: "#5F4EF0",
+      hero: "#1F1A3D",
+      muted: "#7A6FA8",
+      subtle: "#9A90C7",
+      accent: "#7C5CFF",
+      accentStrong: "#5B3DF0",
     },
+
     borders: {
-      subtle: "#8B7CFF14",
-      default: "#8B7CFF1F",
-      strong: "#8B7CFF47",
-      accent: "#8B7CFF57",
-      danger: "#E38AB42E",
+      subtle: "#7C5CFF1A",
+      default: "#7C5CFF33",
+      strong: "#7C5CFF66",
+      accent: "#00D4FF66",
+      danger: "#FB718533",
     },
+
     fills: {
-      navButton: "#FFFFFFBD",
-      todayButton: "#FFFFFFC2",
-      viewSwitcher: "#F5F2FFDB",
-      selectedSoft: "#F1EDFFEF",
-      focusBlock: "#C77DFF14",
-      sectionSoft: "#F8F6FFEB",
+      navButton: "#FFFFFFE6",
+      todayButton: "#FFFFFFF2",
+      viewSwitcher: "#EFE9FF",
+      selectedSoft: "#E9E3FF",
+      focusBlock: "#A855F71A",
+      sectionSoft: "#F7F5FF",
       transparent: "#FFFFFF00",
     },
+
     gradients: {
-      primaryAction: "linear-gradient(135deg, #8B7CFF 0%, #6CCBFF 100%)",
-      activeToggle: "linear-gradient(135deg, #8B7CFF 0%, #C77DFF 100%)",
-      selectedHeader: "linear-gradient(135deg, #8B7CFF2E 0%, #6CCBFF2E 100%)",
+      primaryAction: "linear-gradient(135deg, #7C5CFF 0%, #00D4FF 100%)",
+      activeToggle: "linear-gradient(135deg, #A855F7 0%, #00D4FF 100%)",
+      selectedHeader: "linear-gradient(135deg, #7C5CFF33 0%, #00D4FF33 100%)",
       selectedDaySurface:
-        "linear-gradient(180deg, #EAE4FFF2 0%, #F3FAFFFA 100%)",
-      hoverSurface: "linear-gradient(180deg, #FFFFFFFA 0%, #F5EFFFF5 100%)",
-      dialogAccent: "linear-gradient(135deg, #8B7CFF29 0%, #6CCBFF33 100%)",
-      dangerSurface: "linear-gradient(180deg, #FFFFFFF7 0%, #FDF4F8FA 100%)",
-      dangerAction: "linear-gradient(135deg, #E38AB4 0%, #C06490 100%)",
+        "linear-gradient(180deg, #EDE7FF 0%, #E6FAFF 100%)",
+      hoverSurface:
+        "linear-gradient(180deg, #FFFFFF 0%, #F0FBFF 100%)",
+      dialogAccent:
+        "linear-gradient(135deg, #A855F733 0%, #00D4FF33 100%)",
+      dangerSurface:
+        "linear-gradient(180deg, #FFF1F2 0%, #FFE4E6 100%)",
+      dangerAction:
+        "linear-gradient(135deg, #FB7185 0%, #E11D48 100%)",
     },
+
     shadows: {
-      soft: "0 4px 18px #7864FF0F",
-      medium: "0 8px 20px #7864FF14",
-      strong: "0 12px 28px #8B7CFF38",
-      insetSoft: "inset 0 1px 0 #FFFFFF99",
-      focusRing: "0 0 0 3px #8B7CFF24",
-      focusRingStrong: "0 0 0 3px #8B7CFF29",
+      soft: "0 6px 20px #7C5CFF1A",
+      medium: "0 12px 30px #7C5CFF22",
+      strong: "0 18px 45px #7C5CFF33",
+      insetSoft: "inset 0 1px 0 #FFFFFFCC",
+      focusRing: "0 0 0 3px #00D4FF33",
+      focusRingStrong: "0 0 0 4px #7C5CFF44",
     },
+
     alerts: {
-      error: { background: "#F8ECF1", text: "#5E3650", border: "#E7C8D5" },
-      info: { background: "#E3F0FF", text: "#1F4F84", border: "#BFD8F6" },
-      success: { background: "#3D7EDB", text: "#F7FBFF" },
-      warning: { background: "#FFF6FA", text: "#7A3656", border: "#F0C9D9" },
+      error: { background: "#FFE4E6", text: "#9F1239", border: "#FB7185" },
+      info: { background: "#E0F2FE", text: "#075985", border: "#38BDF8" },
+      success: { background: "#DCFCE7", text: "#166534" },
+      warning: { background: "#FFF7ED", text: "#9A3412", border: "#FDBA74" },
     },
+
     eventTypeColors: {
-      work: { background: "#E7EEFF", text: "#26458A", border: "#8CA8F6" },
-      school: { background: "#E6F7FF", text: "#1D5C85", border: "#6CCBFF" },
-      travel: { background: "#EAF4FF", text: "#2B5C9A", border: "#8AB6FF" },
-      gym: { background: "#E8FBF4", text: "#216A58", border: "#7DCCB4" },
-      personal: { background: "#F4EAFF", text: "#6A3E92", border: "#C77DFF" },
-      holiday: { background: "#FFF1E8", text: "#9A5A2F", border: "#FFB37A" },
-      birthday: { background: "#FDEBF4", text: "#9A3F6A", border: "#E38AB4" },
-      other: { background: "#F3F4F8", text: "#5E647A", border: "#B6BED3" },
+      work: { background: "#E0E7FF", text: "#3730A3", border: "#818CF8" },
+      school: { background: "#E0F2FE", text: "#075985", border: "#38BDF8" },
+      travel: { background: "#DBEAFE", text: "#1E3A8A", border: "#60A5FA" },
+      gym: { background: "#DCFCE7", text: "#166534", border: "#4ADE80" },
+      personal: { background: "#F3E8FF", text: "#6B21A8", border: "#C084FC" },
+      holiday: { background: "#FFEDD5", text: "#9A3412", border: "#FDBA74" },
+      birthday: { background: "#FFE4E6", text: "#9F1239", border: "#FB7185" },
+      other: { background: "#F1F5F9", text: "#334155", border: "#94A3B8" },
     },
   },
+
   components: {
     MuiCssBaseline: {
-      styleOverrides: { body: { backgroundColor: "#F7F6FF" } },
+      styleOverrides: { body: { backgroundColor: "#F6F5FF" } },
     },
     MuiCard: {
       styleOverrides: {
-        root: { boxShadow: "0 4px 20px #7864FF14", borderColor: "#8B7CFF1A" },
+        root: {
+          boxShadow: "0 10px 30px #7C5CFF1A",
+          borderColor: "#7C5CFF22",
+        },
       },
     },
     MuiButton: {
       styleOverrides: {
-        root: { borderRadius: 10, boxShadow: "0 8px 22px #8B7CFF29" },
+        root: {
+          borderRadius: 12,
+          boxShadow: "0 10px 28px #7C5CFF22",
+        },
       },
     },
     MuiOutlinedInput: {
-      styleOverrides: { root: { backgroundColor: "#FFFFFFC7" } },
+      styleOverrides: {
+        root: {
+          backgroundColor: "#FFFFFFF5",
+        },
+      },
     },
   },
 });
