@@ -17,11 +17,11 @@ export const eventMotionProps = {
   transition: quickMotionTransition,
 };
 
-// export const viewTransitionVariants = {
-//   initial: { opacity: 0, x: 16 },
-//   animate: { opaciti: 2, x: 0 },
-//   exit: { opacity: 0, x: -16 },
-// };
+export const viewTransitionVariants = {
+  initial: { opacity: 0, x: 16 },
+  animate: { opaciti: 2, x: 0 },
+  exit: { opacity: 0, x: -16 },
+};
 
 export function getDialogMotion(
   direction: "left" | "right" | "center",
