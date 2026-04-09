@@ -1,12 +1,17 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { and, asc, eq, gte, lte, ne, or } from 'drizzle-orm';
+import { DateTime } from 'luxon';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../db/db.module';
+import { EventRecord, eventsTable } from '../db/schema';
 import { CreateEventDto } from './dto/create-event-dto';
-import { UpdateEventDto } from './dto/update-event-dto';
-import { eq, asc, ne, and, gte, or, lte } from 'drizzle-orm';
 import { ListEventDto } from './dto/list-event-dto';
-import { DateTime } from 'luxon';
-import { eventsTable, EventRecord } from '../db/schema';
+import { UpdateEventDto } from './dto/update-event-dto';
 
 type MutableEventShape = {
   id: string;
@@ -16,12 +21,12 @@ type MutableEventShape = {
   timeZone: string;
   eventType: string;
   repeatWeekly: boolean;
-  repeatUntilUtc: string | null;
+  repeatUntilUtc?: string | null;
   reminderEnabled: boolean;
 };
 
 type EventOccurrence = MutableEventShape & {
-  occurenceId: string;
+  occurrenceId: string;
   baseEventId: string;
   reminderAtUtc: string | null;
 };
@@ -29,7 +34,8 @@ type EventOccurrence = MutableEventShape & {
 @Injectable()
 export class EventsService {
   constructor(
-    @Inject(DATABASE_CONNECTION) private readonly db: NodePgDatabase,
+    @Inject(DATABASE_CONNECTION)
+    private readonly db: NodePgDatabase,
   ) {}
 
   async findAll(query: ListEventDto = {}) {
@@ -38,12 +44,13 @@ export class EventsService {
         .select()
         .from(eventsTable)
         .orderBy(asc(eventsTable.startUtc));
-      return events.map((event) => this.toSingleOccurenceEvent(event));
+
+      return events.map((event) => this.toSingleOccurrence(event));
     }
 
     if (!query.rangeStartUtc || !query.rangeEndUtc) {
-      throw new Error(
-        'Both rangeStartUtc and rangeEndUtc must be provided together',
+      throw new BadRequestException(
+        'Both rangeStartUtc and rangeEndUtc are required when filtering by range',
       );
     }
 
@@ -53,6 +60,7 @@ export class EventsService {
       query.rangeStartUtc,
       query.rangeEndUtc,
     );
+
     return events.flatMap((event) =>
       this.generateOccurrences(
         event,
@@ -68,9 +76,11 @@ export class EventsService {
       .from(eventsTable)
       .where(eq(eventsTable.id, id))
       .limit(1);
+
     if (!event) {
-      throw new Error(`Event with id ${id} not found`);
+      throw new NotFoundException('Event not found');
     }
+
     return event;
   }
 
@@ -97,18 +107,20 @@ export class EventsService {
         endUtc: new Date(candidate.endUtc),
         timeZone: candidate.timeZone,
         eventType: candidate.eventType,
-        repeatWeekly: candidate.repeatWeekly ?? false,
+        repeatWeekly: candidate.repeatWeekly,
         repeatUntilUtc: candidate.repeatUntilUtc
           ? new Date(candidate.repeatUntilUtc)
           : null,
-        reminderEnabled: candidate.reminderEnabled ?? false,
+        reminderEnabled: candidate.reminderEnabled,
       })
       .returning();
+
     return created;
   }
 
   async update(id: string, updateEventDto: UpdateEventDto) {
     const current = await this.findOne(id);
+
     const candidate = this.normalizeCandidate({
       id,
       title: updateEventDto.title ?? current.title,
@@ -124,7 +136,8 @@ export class EventsService {
       reminderEnabled:
         updateEventDto.reminderEnabled ?? current.reminderEnabled,
     });
-    await this.ensureNoOverlap(candidate);
+
+    await this.ensureNoOverlap(candidate, id);
 
     const [updated] = await this.db
       .update(eventsTable)
@@ -143,73 +156,87 @@ export class EventsService {
       })
       .where(eq(eventsTable.id, id))
       .returning();
+
     return updated;
   }
 
-  async remove(id: string): Promise<{ message: string; success: boolean }> {
+  async remove(id: string) {
     await this.findOne(id);
+
     await this.db.delete(eventsTable).where(eq(eventsTable.id, id));
-    return { message: `Event with id ${id} has been deleted`, success: true };
+
+    return { success: true };
   }
 
-  private normalizeCandidate(candidate: MutableEventShape) {
-    const normalized: MutableEventShape = {
+  private normalizeCandidate(candidate: MutableEventShape): MutableEventShape {
+    const normalized = {
       ...candidate,
       title: candidate.title.trim(),
       timeZone: candidate.timeZone.trim(),
       eventType: candidate.eventType.trim(),
       repeatUntilUtc: candidate.repeatUntilUtc ?? null,
     };
+
     this.validateDateRange(normalized.startUtc, normalized.endUtc);
     this.validateRepeatRule(normalized);
+
     return normalized;
   }
 
-  private validateDateRange(start: Date | string, end: Date | string) {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+  private validateDateRange(startUtc: string, endUtc: string) {
+    const start = new Date(startUtc).getTime();
+    const end = new Date(endUtc).getTime();
+
     if (Number.isNaN(start) || Number.isNaN(end)) {
-      throw new Error('Invalid date format');
+      throw new BadRequestException('Invalid event date');
     }
-    if (endDate <= startDate) {
-      throw new Error('endUtc must be after startUtc');
+
+    if (end <= start) {
+      throw new BadRequestException('End time must be after start time');
     }
   }
 
-  private validateRepeatRule(event: MutableEventShape) {
-    if (!event.repeatWeekly) {
+  private validateRepeatRule(candidate: MutableEventShape) {
+    if (!candidate.repeatWeekly) {
       return;
     }
-    if (!event.repeatUntilUtc) {
-      throw new Error(
-        'repeatUntilUtc must be provided when repeatWeekly is true',
+
+    if (!candidate.repeatUntilUtc) {
+      throw new BadRequestException(
+        'Repeat-until date is required for weekly recurrence',
       );
     }
+
     if (
-      new Date(event.repeatUntilUtc).getTime() <=
-      new Date(event.startUtc).getTime()
+      new Date(candidate.repeatUntilUtc).getTime() <
+      new Date(candidate.startUtc).getTime()
     ) {
-      throw new Error('repeatUntilUtc must be after startUtc');
+      throw new BadRequestException(
+        'Repeat-until date must be on or after the first event occurrence',
+      );
     }
   }
 
   private async ensureNoOverlap(
     candidate: MutableEventShape,
-    excludeId?: string,
+    excludedId?: string,
   ) {
     const comparisonBounds = this.getComparisonBounds(candidate);
+
     const events = await this.getEventsForRange(
       comparisonBounds.startUtc,
       comparisonBounds.endUtc,
-      excludeId,
+      excludedId,
     );
 
     const conflict = this.findConflict(candidate, events);
+
     if (!conflict) {
       return;
     }
 
-    const suggestion = this.findSuggestion(candidate, events);
+    const suggestion = this.findSuggestedTime(candidate, events);
+
     throw new BadRequestException({
       message: 'Event overlaps an existing booking',
       conflict: {
@@ -222,69 +249,49 @@ export class EventsService {
     });
   }
 
-  // private async getEventsForRange(
-  //   rangeStartUtc: string,
-  //   rangeEndUtc: string,
-  //   excludeId?: string,
-  // ) {
-  //   const rangeStart = new Date(rangeStartUtc);
-  //   const rangeEnd = new Date(rangeEndUtc);
-
-  //   const predicates = [
-  //     or(
-  //       and(
-  //         eq(eventsTable.repeatWeekly, false),
-  //         lte(eventsTable.startUtc, rangeEnd),
-  //         gte(eventsTable.endUtc, rangeStart),
-  //       ),
-  //       and(
-  //         eq(eventsTable.repeatWeekly, true),
-  //         lte(eventsTable.startUtc, rangeEnd),
-  //         gte(eventsTable.endUtc, rangeStart),
-  //       ),
-  //     ),
-  //   ];
-  //   if (excludeId) {
-  //     predicates.push(ne(eventsTable.id, excludeId));
-  //   }
-  //   return this.db
-  //     .select()
-  //     .from(eventsTable)
-  //     .where(and(...predicates))
-  //     .orderBy(asc(eventsTable.startUtc));
-  // }
-
   private async getEventsForRange(
     rangeStartUtc: string,
     rangeEndUtc: string,
-    excludeId?: string,
+    excludedId?: string,
   ) {
     const rangeStart = new Date(rangeStartUtc);
     const rangeEnd = new Date(rangeEndUtc);
 
-    const overlapCondition = or(
-      and(
-        eq(eventsTable.repeatWeekly, false),
-        lte(eventsTable.startUtc, rangeEnd),
-        gte(eventsTable.endUtc, rangeStart),
-      ),
-      and(
-        eq(eventsTable.repeatWeekly, true),
-        lte(eventsTable.startUtc, rangeEnd),
-        gte(eventsTable.endUtc, rangeStart),
-      ),
-    );
+    const rangeStartDateTime = DateTime.fromJSDate(rangeStart, { zone: 'utc' });
 
-    return this.db
+    const predicates = [
+      or(
+        and(
+          eq(eventsTable.repeatWeekly, false),
+          lte(eventsTable.startUtc, rangeEnd),
+          gte(eventsTable.endUtc, rangeStart),
+        ),
+        and(
+          eq(eventsTable.repeatWeekly, true),
+          lte(eventsTable.startUtc, rangeEnd),
+        ),
+      ),
+    ];
+
+    if (excludedId) {
+      predicates.push(ne(eventsTable.id, excludedId));
+    }
+
+    const events = await this.db
       .select()
       .from(eventsTable)
-      .where(
-        and(
-          overlapCondition,
-          excludeId ? ne(eventsTable.id, excludeId) : undefined,
-        ),
-      )
+      .where(and(...predicates))
       .orderBy(asc(eventsTable.startUtc));
+
+    return events.filter((event) => {
+      if (!event.repeatWeekly) {
+        return event.endUtc >= rangeStart;
+      }
+
+      return (
+        this.getSeriesEnd(this.mapRecordToShape(event)) >= rangeStartDateTime
+      );
+    });
   }
 
   private findConflict(
@@ -292,50 +299,63 @@ export class EventsService {
     events: EventRecord[],
   ): EventOccurrence | null {
     const comparisonBounds = this.getComparisonBounds(candidate, events);
-    const candidateOccurences = this.generateOccurrencesFromShape(
+
+    const candidateOccurrences = this.generateOccurrencesFromShape(
       candidate,
       comparisonBounds.startUtc,
       comparisonBounds.endUtc,
     );
 
     for (const event of events) {
-      const existingOccurences = this.generateOccurrences(
+      const existingOccurrences = this.generateOccurrences(
         event,
         comparisonBounds.startUtc,
         comparisonBounds.endUtc,
       );
-      for (const candidateOccurence of candidateOccurences) {
-        for (const existingOccurence of existingOccurences) {
-          if (this.occurenceOverlap(candidateOccurence, existingOccurence)) {
-            return existingOccurence;
+
+      for (const candidateOccurrence of candidateOccurrences) {
+        for (const existingOccurrence of existingOccurrences) {
+          if (
+            this.occurrencesOverlap(candidateOccurrence, existingOccurrence)
+          ) {
+            return existingOccurrence;
           }
         }
       }
     }
+
     return null;
   }
 
-  private findSuggestion(candidate: MutableEventShape, events: EventRecord[]) {
-    const originalStart = DateTime.fromISO(candidate.startUtc, {
-      zone: 'utc',
-    });
+  private findSuggestedTime(
+    candidate: MutableEventShape,
+    events: EventRecord[],
+  ) {
+    const originalStart = DateTime.fromISO(candidate.startUtc, { zone: 'utc' });
+
     const originalEnd = DateTime.fromISO(candidate.endUtc, { zone: 'utc' });
-    const dureationMinutes = Math.round(
+
+    const durationMinutes = Math.round(
       originalEnd.diff(originalStart, 'minutes').minutes,
     );
 
     let shiftedStart = originalStart;
     let shiftedEnd = originalEnd;
+
     let shiftedRepeatUntil = candidate.repeatUntilUtc
-      ? DateTime.fromISO(candidate.repeatUntilUtc, { zone: 'utc' })
+      ? DateTime.fromISO(candidate.repeatUntilUtc, {
+          zone: 'utc',
+        })
       : null;
+
     for (let attempt = 0; attempt < 64; attempt += 1) {
       const shiftedCandidate = this.normalizeCandidate({
         ...candidate,
         startUtc: shiftedStart.toISO() as string,
         endUtc: shiftedEnd.toISO() as string,
-        repeatUntilUtc: shiftedRepeatUntil ? shiftedRepeatUntil.toISO() : null,
+        repeatUntilUtc: shiftedRepeatUntil?.toISO() ?? null,
       });
+
       const conflict = this.findConflict(shiftedCandidate, events);
 
       if (!conflict) {
@@ -345,21 +365,28 @@ export class EventsService {
         };
       }
 
-      const conflictEnd = DateTime.fromISO(conflict.endUtc, {
-        zone: 'utc',
-      });
+      const conflictEnd = DateTime.fromISO(conflict.endUtc, { zone: 'utc' });
+
       const minutesToMove = Math.max(
         30,
-        Math.ceil(
-          (conflictEnd.diff(shiftedStart, 'minutes').minutes / 30) * 30,
-        ),
+        Math.ceil(conflictEnd.diff(shiftedStart, 'minutes').minutes / 30) * 30,
       );
-      shiftedStart = shiftedStart.plus({ minutes: minutesToMove });
-      shiftedEnd = shiftedStart.plus({ minutes: dureationMinutes });
+
+      shiftedStart = shiftedStart.plus({
+        minutes: minutesToMove,
+      });
+
+      shiftedEnd = shiftedStart.plus({
+        minutes: durationMinutes,
+      });
+
       shiftedRepeatUntil = shiftedRepeatUntil
-        ? shiftedRepeatUntil.plus({ minutes: minutesToMove })
+        ? shiftedRepeatUntil.plus({
+            minutes: minutesToMove,
+          })
         : null;
     }
+
     return null;
   }
 
@@ -369,36 +396,37 @@ export class EventsService {
   ) {
     const starts = [
       new Date(candidate.startUtc).getTime(),
-      ...events.map((e) => e.startUtc.getTime()),
+      ...events.map((event) => event.startUtc.getTime()),
     ];
+
     const ends = [
       this.getSeriesEnd(candidate).toMillis(),
       ...events.map((event) =>
         this.getSeriesEnd(this.mapRecordToShape(event)).toMillis(),
       ),
     ];
+
     return {
       startUtc: new Date(Math.min(...starts)).toISOString(),
       endUtc: new Date(Math.max(...ends)).toISOString(),
     };
   }
 
-  // private getSeriesEnd(event: MutableEventShape) {
-  //   return DateTime.fromISO(event.repeatUntilUtc ?? event.endUtc, {
-  //     zone: 'utc',
-  //   });
-  // }
-
   private getSeriesEnd(event: MutableEventShape) {
     if (!event.repeatWeekly || !event.repeatUntilUtc) {
-      return DateTime.fromISO(event.endUtc, { zone: 'utc' });
+      return DateTime.fromISO(event.endUtc, {
+        zone: 'utc',
+      });
     }
+
     return this.getRepeatUntilBoundaryUtc(event);
   }
+
   private getRepeatUntilBoundaryUtc(event: MutableEventShape) {
     const repeatUntilLocal = DateTime.fromISO(event.repeatUntilUtc as string, {
       zone: 'utc',
     }).setZone(event.timeZone);
+
     return repeatUntilLocal.endOf('day').toUTC();
   }
 
@@ -419,56 +447,58 @@ export class EventsService {
     rangeStartUtc: string,
     rangeEndUtc: string,
   ): EventOccurrence[] {
-    const rangeStart = DateTime.fromISO(rangeStartUtc, { zone: 'utc' });
-    const rangeEnd = DateTime.fromISO(rangeEndUtc, { zone: 'utc' });
-    const eventStart = DateTime.fromISO(event.startUtc, {
+    const rangeStart = DateTime.fromISO(rangeStartUtc, {
       zone: 'utc',
     });
-    const eventEnd = DateTime.fromISO(event.endUtc, {
+
+    const rangeEnd = DateTime.fromISO(rangeEndUtc, {
       zone: 'utc',
     });
-    const duration = eventEnd.diff(eventStart);
+
+    const eventStartUtc = DateTime.fromISO(event.startUtc, { zone: 'utc' });
+
+    const eventEndUtc = DateTime.fromISO(event.endUtc, { zone: 'utc' });
+
+    const duration = eventEndUtc.diff(eventStartUtc);
 
     if (!event.repeatWeekly) {
-      if (eventStart < rangeEnd || eventEnd > rangeStart) {
-        return [this.createOccurrence(event, eventStart, eventEnd)];
+      if (eventStartUtc < rangeEnd && eventEndUtc > rangeStart) {
+        return [this.createOccurrence(event, eventStartUtc, eventEndUtc)];
       }
+
       return [];
     }
 
-    // const seriesEnd = DateTime.fromISO(event.repeatUntilUtc ?? event.endUtc, {
-    //   zone: 'utc',
-    // });
     const seriesEndUtc = this.getSeriesEnd(event);
-    const eventStartLocal = eventStart.setZone(event.timeZone, {
-      keepLocalTime: true,
-    });
-    // const rangeStartLocal = rangeStart
-    //   .minus(duration)
-    //   .setZone(event.timeZone, { keepLocalTime: true });
+
+    const eventStartLocal = eventStartUtc.setZone(event.timeZone);
+
     const rangeStartLocal = rangeStart.setZone(event.timeZone);
 
-    let occurrencesStartLocal = eventStartLocal;
+    let occurrenceStartLocal = eventStartLocal;
+
     if (rangeStartLocal > eventStartLocal) {
       const weeksToSkip = Math.max(
         0,
         Math.floor(rangeStartLocal.diff(eventStartLocal, 'weeks').weeks),
       );
-      occurrencesStartLocal = occurrencesStartLocal.plus({
+
+      occurrenceStartLocal = eventStartLocal.plus({
         weeks: weeksToSkip,
       });
-      while (occurrencesStartLocal.plus(duration) <= rangeStart) {
-        occurrencesStartLocal = occurrencesStartLocal.plus({ weeks: 1 });
+
+      while (occurrenceStartLocal.plus(duration).toUTC() <= rangeStart) {
+        occurrenceStartLocal = occurrenceStartLocal.plus({ weeks: 1 });
       }
     }
+
     const occurrences: EventOccurrence[] = [];
-    // while (
-    //   occurrencesStartLocal.toUTC() <= seriesEnd &&
-    //   occurrencesStartLocal.toUTC() < rangeEnd
-    // ) {
-    while (occurrencesStartLocal.toUTC() <= seriesEndUtc) {
-      const occurrenceStartUtc = occurrencesStartLocal.toUTC();
-      const occurrenceEndUtc = occurrencesStartLocal.plus(duration);
+
+    while (occurrenceStartLocal.toUTC() <= seriesEndUtc) {
+      const occurrenceStartUtc = occurrenceStartLocal.toUTC();
+
+      const occurrenceEndUtc = occurrenceStartUtc.plus(duration);
+
       if (occurrenceStartUtc >= rangeEnd) {
         break;
       }
@@ -478,8 +508,10 @@ export class EventsService {
           this.createOccurrence(event, occurrenceStartUtc, occurrenceEndUtc),
         );
       }
-      occurrencesStartLocal = occurrencesStartLocal.plus({ weeks: 1 });
+
+      occurrenceStartLocal = occurrenceStartLocal.plus({ weeks: 1 });
     }
+
     return occurrences;
   }
 
@@ -491,44 +523,47 @@ export class EventsService {
     const reminderAtUtc = event.reminderEnabled
       ? occurrenceStartUtc.minus({ minutes: 10 }).toISO()
       : null;
+
     return {
       ...event,
       startUtc: occurrenceStartUtc.toISO() as string,
       endUtc: occurrenceEndUtc.toISO() as string,
-      occurenceId: `${event.id}_${occurrenceStartUtc.toISO()}`,
+      occurrenceId: `${event.id}:${occurrenceStartUtc.toISO()}`,
       baseEventId: event.id,
       reminderAtUtc,
     };
   }
 
-  private toSingleOccurenceEvent(event: EventRecord): EventOccurrence {
+  private toSingleOccurrence(event: EventRecord): EventOccurrence {
     return this.createOccurrence(
       this.mapRecordToShape(event),
-      DateTime.fromJSDate(event.startUtc, { zone: 'utc' }),
-      DateTime.fromJSDate(event.endUtc, { zone: 'utc' }),
+      DateTime.fromJSDate(event.startUtc, {
+        zone: 'utc',
+      }),
+      DateTime.fromJSDate(event.endUtc, {
+        zone: 'utc',
+      }),
     );
   }
 
-  private mapRecordToShape(record: EventRecord): MutableEventShape {
+  private mapRecordToShape(event: EventRecord): MutableEventShape {
     return {
-      id: record.id,
-      title: record.title,
-      startUtc: record.startUtc.toISOString(),
-      endUtc: record.endUtc.toISOString(),
-      timeZone: record.timeZone,
-      eventType: record.eventType,
-      repeatWeekly: record.repeatWeekly,
-      repeatUntilUtc: record.repeatUntilUtc
-        ? record.repeatUntilUtc.toISOString()
-        : null,
-      reminderEnabled: record.reminderEnabled,
+      id: event.id,
+      title: event.title,
+      startUtc: event.startUtc.toISOString(),
+      endUtc: event.endUtc.toISOString(),
+      timeZone: event.timeZone,
+      eventType: event.eventType,
+      repeatWeekly: event.repeatWeekly,
+      repeatUntilUtc: event.repeatUntilUtc?.toISOString() ?? null,
+      reminderEnabled: event.reminderEnabled,
     };
   }
 
-  private occurenceOverlap(a: EventOccurrence, b: EventOccurrence) {
+  private occurrencesOverlap(left: EventOccurrence, right: EventOccurrence) {
     return (
-      new Date(a.startUtc).getTime() < new Date(b.endUtc).getTime() &&
-      new Date(a.endUtc).getTime() > new Date(b.startUtc).getTime()
+      new Date(left.startUtc).getTime() < new Date(right.endUtc).getTime() &&
+      new Date(left.endUtc).getTime() > new Date(right.startUtc).getTime()
     );
   }
 }
