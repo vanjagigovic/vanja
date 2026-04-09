@@ -1,0 +1,301 @@
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #192b37;
+  background: #f5f7fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Layout */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+/* Shared cards */
+.topbar,
+.toolbar,
+.state-card,
+.time-grid-wrapper,
+.month-view {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px #192b3714;
+}
+
+/* Topbar */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.topbar h1,
+.toolbar h2 {
+  margin: 0;
+}
+
+.topbar p {
+  margin: 0.25rem 0 0;
+  color: #55636f;
+}
+
+/* Buttons */
+.topbar button,
+.toolbar button,
+.modal-actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  background: #ff5640;
+  color: #ffffff;
+}
+
+/* Toolbar */
+.toolbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.toolbar-group button.active {
+  background: #192b37;
+}
+
+/* State */
+.state-card {
+  padding: 1rem 1.25rem;
+}
+
+.state-card.error,
+.error-message {
+  color: #c0392b;
+}
+
+/* Time grid */
+.time-grid-wrapper {
+  padding: 1rem;
+  overflow: auto;
+}
+
+.time-grid-header,
+.time-grid-body,
+.month-weekdays,
+.month-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.day-header,
+.month-weekday {
+  padding: 0.75rem;
+  background: #eef2f6;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.time-gutter {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+.time-label {
+  height: 72px;
+  font-size: 0.8rem;
+  color: #6b7785;
+}
+
+.day-column {
+  position: relative;
+  min-width: 180px;
+  border: 1px solid #e5ebf0;
+  border-radius: 12px;
+  background: linear-gradient(to bottom, #192b370f 1px, #ffffff00 1px);
+  background-size: 100% 36px;
+}
+
+.slot-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #192b370f;
+}
+
+/* Events */
+.event-card {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  border: none;
+  border-radius: 10px;
+  background: #ff5640;
+  color: #ffffff;
+  padding: 0.45rem 0.5rem;
+  overflow: hidden;
+}
+
+.event-card span,
+.event-card strong,
+.month-event-chip {
+  font-size: 0.78rem;
+}
+
+/* Month view */
+.month-view {
+  padding: 1rem;
+}
+
+.month-weekdays,
+.month-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.month-cell {
+  min-height: 140px;
+  border: 1px solid #e5ebf0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.75rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.month-cell--muted {
+  opacity: 0.55;
+}
+
+.month-day-number {
+  font-weight: 700;
+}
+
+.month-events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.month-event-chip {
+  background: #ff5640;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 0.3rem 0.45rem;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #192b3773;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal {
+  width: min(520px, 100%);
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 20px 50px #192b3733;
+}
+
+.modal h2 {
+  margin-top: 0;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.modal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 500;
+}
+
+.modal-form input,
+.modal-form select {
+  border: 1px solid #d8e0e7;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+/* Modal actions */
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modal-actions-right {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Ghost buttons */
+.ghost {
+  background: transparent !important;
+  color: #192b37 !important;
+  border: 1px solid #d8e0e7 !important;
+}
+
+.ghost.danger {
+  color: #c0392b !important;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
