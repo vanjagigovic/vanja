@@ -1,11 +1,11 @@
-import { useCallback, useState } from 'react';
-import { DateTime } from 'luxon';
-import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
+import { useCallback, useState } from "react";
+import { DateTime } from "luxon";
+import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
-import { AdapterLuxon } from '@mui/x-date-pickers/AdapterLuxon';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 
 import {
   Alert,
@@ -26,19 +26,26 @@ import {
   TextField,
   useMediaQuery,
   useTheme,
-} from '@mui/material';
+} from "@mui/material";
 
-import { EVENT_TYPE_ICONS, EVENT_TYPES, getEventTypeColors } from '../types/event-types';
-import { getDialogMotion, quickMotionTransition } from '../helpers/motion-presets';
-import { errorAlertSx } from '../styles/alertStyles';
-import * as eventStyles from '../styles/eventStyles';
+import {
+  EVENT_TYPE_ICONS,
+  EVENT_TYPES,
+  getEventTypeColors,
+} from "../types/event-types";
 
-import type { CalendarEvent, EventPayload } from '../types/types';
-import { useEventDialogState } from '../hooks/useEventDialogState';
+import {
+  getDialogMotion,
+  pressableMotionProps,
+  quickMotionTransition,
+} from "../helpers/motion-presets";
 
-/* -------------------------------------------------------------------------- */
-/*                                   TYPES                                    */
-/* -------------------------------------------------------------------------- */
+import { errorAlertSx } from "../styles/alertStyles";
+import * as eventStyles from "../styles/eventStyles";
+
+import type { CalendarEvent, EventPayload } from "../types/types";
+
+import { useEventDialogState } from "../hooks/useEventDialogState";
 
 interface EventDialogProps {
   event: CalendarEvent | null;
@@ -48,10 +55,6 @@ interface EventDialogProps {
   onSave: (payload: EventPayload) => Promise<void>;
   onDelete?: () => Promise<void>;
 }
-
-/* -------------------------------------------------------------------------- */
-/*                                COMPONENT                                   */
-/* -------------------------------------------------------------------------- */
 
 export function EventDialog({
   event,
@@ -63,27 +66,24 @@ export function EventDialog({
 }: EventDialogProps) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
-  const [closeDirection, setCloseDirection] =
-    useState<'left' | 'right' | 'center'>('center');
-
-  /* ---------------------------------------------------------------------- */
-  /*                               CLOSE LOGIC                              */
-  /* ---------------------------------------------------------------------- */
+  const [closeDirection, setCloseDirection] = useState<
+    "left" | "right" | "center"
+  >("center");
 
   const closeWithAnimation = useCallback(
-    async (direction: 'left' | 'right') => {
+    async (direction: "left" | "right") => {
       if (isClosing) return;
 
       setCloseDirection(direction);
       setIsClosing(true);
 
-      await new Promise<void>((resolve) =>
-        window.setTimeout(resolve, 220),
-      );
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 220);
+      });
 
       onClose();
     },
@@ -93,7 +93,7 @@ export function EventDialog({
   const handleDialogSave = useCallback(
     async (payload: EventPayload) => {
       await onSave(payload);
-      await closeWithAnimation('right');
+      await closeWithAnimation("right");
     },
     [closeWithAnimation, onSave],
   );
@@ -103,12 +103,8 @@ export function EventDialog({
 
     await onDelete();
     setConfirmingDelete(false);
-    await closeWithAnimation('right');
+    await closeWithAnimation("right");
   }, [closeWithAnimation, onDelete]);
-
-  /* ---------------------------------------------------------------------- */
-  /*                           CUSTOM HOOK STATE                            */
-  /* ---------------------------------------------------------------------- */
 
   const {
     title,
@@ -128,6 +124,7 @@ export function EventDialog({
     reminderEnabled,
     setReminderEnabled,
     error,
+    fieldErrors,
     saving,
     timeZones,
     handleSubmit,
@@ -145,11 +142,9 @@ export function EventDialog({
     (value: string) => {
       if (!value) return null;
 
-      const parsed = DateTime.fromFormat(
-        value,
-        "yyyy-LL-dd'T'HH:mm",
-        { zone: timeZone },
-      );
+      const parsed = DateTime.fromFormat(value, "yyyy-LL-dd'T'HH:mm", {
+        zone: timeZone,
+      });
 
       return parsed.isValid ? parsed : null;
     },
@@ -158,15 +153,12 @@ export function EventDialog({
 
   const formatPickerValue = useCallback(
     (value: DateTime | null) => {
-      if (!value || !value.isValid) return '';
+      if (!value || !value.isValid) return "";
 
-      return value
-        .setZone(timeZone)
-        .toFormat("yyyy-LL-dd'T'HH:mm");
+      return value.setZone(timeZone).toFormat("yyyy-LL-dd'T'HH:mm");
     },
     [timeZone],
   );
-
 
   function handleDeleteClick() {
     setConfirmingDelete(true);
@@ -178,7 +170,8 @@ export function EventDialog({
 
   function handleCancel() {
     if (saving || isClosing) return;
-    void closeWithAnimation('left');
+
+    void closeWithAnimation("left");
   }
 
   async function handleConfirmDelete() {
@@ -192,7 +185,9 @@ export function EventDialog({
       fullWidth
       maxWidth="sm"
       fullScreen={isMobile}
-      BackdropProps={{ sx: eventStyles.eventDialogBackdropSx }}
+      BackdropProps={{
+        sx: eventStyles.eventDialogBackdropSx,
+      }}
       PaperProps={{
         component: motion.div,
         sx: eventStyles.eventDialogPaperSx(isMobile),
@@ -217,7 +212,7 @@ export function EventDialog({
           </Box>
 
           <Box component="span" sx={eventStyles.eventDialogTitleTextSx}>
-            {event ? t('editEvent') : t('createEvent')}
+            {event ? t("editEvent") : t("createEvent")}
           </Box>
         </Stack>
       </DialogTitle>
@@ -231,18 +226,21 @@ export function EventDialog({
             onSubmit={handleSubmit}
           >
             <TextField
-              label={t('title')}
+              label={t("title")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
               fullWidth
+              error={Boolean(fieldErrors.title)}
+              helperText={fieldErrors.title}
               sx={eventStyles.eventDialogFieldSx}
             />
 
             <FormControl fullWidth sx={eventStyles.eventDialogFieldSx}>
-              <InputLabel>{t('eventType')}</InputLabel>
+              <InputLabel>{t("eventType")}</InputLabel>
+
               <Select
-                label={t('eventType')}
+                label={t("eventType")}
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value)}
               >
@@ -256,9 +254,7 @@ export function EventDialog({
                       value={type}
                       sx={eventStyles.eventDialogTypeMenuItemSx(colors)}
                     >
-                      <Box
-                        sx={eventStyles.eventDialogTypeMenuItemContentSx}
-                      >
+                      <Box sx={eventStyles.eventDialogTypeMenuItemContentSx}>
                         <Icon
                           sx={eventStyles.eventDialogTypeMenuItemIconSx(
                             colors.text,
@@ -273,9 +269,10 @@ export function EventDialog({
             </FormControl>
 
             <FormControl fullWidth sx={eventStyles.eventDialogFieldSx}>
-              <InputLabel>{t('timeZone')}</InputLabel>
+              <InputLabel>{t("timeZone")}</InputLabel>
+
               <Select
-                label={t('timeZone')}
+                label={t("timeZone")}
                 value={timeZone}
                 onChange={(e) => setTimeZone(e.target.value)}
               >
@@ -296,32 +293,32 @@ export function EventDialog({
               spacing={2}
             >
               <DateTimePicker
-                label={t('start')}
+                label={t("start")}
                 value={parsePickerValue(startLocal)}
-                onChange={(value) =>
-                  setStartLocal(formatPickerValue(value))
-                }
+                onChange={(value) => setStartLocal(formatPickerValue(value))}
                 timezone={timeZone}
                 slotProps={{
                   textField: {
                     fullWidth: true,
                     required: true,
+                    error: Boolean(fieldErrors.startLocal),
+                    helperText: fieldErrors.startLocal,
                     sx: eventStyles.eventDialogFieldSx,
                   },
                 }}
               />
 
               <DateTimePicker
-                label={t('end')}
+                label={t("end")}
                 value={parsePickerValue(endLocal)}
-                onChange={(value) =>
-                  setEndLocal(formatPickerValue(value))
-                }
+                onChange={(value) => setEndLocal(formatPickerValue(value))}
                 timezone={timeZone}
                 slotProps={{
                   textField: {
                     fullWidth: true,
                     required: true,
+                    error: Boolean(fieldErrors.endLocal),
+                    helperText: fieldErrors.endLocal,
                     sx: eventStyles.eventDialogFieldSx,
                   },
                 }}
@@ -329,19 +326,15 @@ export function EventDialog({
             </Stack>
 
             <Box sx={eventStyles.eventDialogOptionsBoxSx}>
-              <Stack
-                spacing={eventStyles.eventDialogOptionsStackSpacing}
-              >
+              <Stack spacing={eventStyles.eventDialogOptionsStackSpacing}>
                 <FormControlLabel
                   control={
                     <Switch
                       checked={repeatWeekly}
-                      onChange={(e) =>
-                        setRepeatWeekly(e.target.checked)
-                      }
+                      onChange={(e) => setRepeatWeekly(e.target.checked)}
                     />
                   }
-                  label={t('repeatWeekly')}
+                  label={t("repeatWeekly")}
                   sx={eventStyles.eventDialogFormControlLabelSx}
                 />
 
@@ -349,47 +342,47 @@ export function EventDialog({
                   control={
                     <Checkbox
                       checked={reminderEnabled}
-                      onChange={(e) =>
-                        setReminderEnabled(e.target.checked)
-                      }
+                      onChange={(e) => setReminderEnabled(e.target.checked)}
                     />
                   }
-                  label={t('reminderEnabled')}
+                  label={t("reminderEnabled")}
                   sx={eventStyles.eventDialogFormControlLabelSx}
                 />
               </Stack>
             </Box>
 
-            {repeatWeekly && (
+            {repeatWeekly ? (
               <DateTimePicker
-                label={t('repeatUntil')}
+                label={t("repeatUntil")}
                 value={parsePickerValue(repeatUntil)}
-                onChange={(value) =>
-                  setRepeatUntil(formatPickerValue(value))
-                }
+                onChange={(value) => setRepeatUntil(formatPickerValue(value))}
                 timezone={timeZone}
                 slotProps={{
                   textField: {
                     fullWidth: true,
                     required: true,
+                    error: Boolean(fieldErrors.repeatUntil),
+                    helperText: fieldErrors.repeatUntil,
                     sx: eventStyles.eventDialogFieldSx,
                   },
                 }}
               />
-            )}
+            ) : null}
 
-            {error && (
+            {error ? (
               <Alert severity="error" sx={errorAlertSx}>
                 {error}
               </Alert>
-            )}
+            ) : null}
           </Stack>
         </LocalizationProvider>
       </DialogContent>
 
       <DialogActions sx={eventStyles.eventDialogActionsSx}>
-        {onDelete && (
+        {onDelete ? (
           <Button
+            component={motion.button}
+            {...pressableMotionProps}
             variant="outlined"
             color="error"
             sx={eventStyles.eventDialogDangerButtonSx}
@@ -397,70 +390,73 @@ export function EventDialog({
             disabled={saving}
             fullWidth={isMobile}
           >
-            {t('delete')}
+            {t("delete")}
           </Button>
-        )}
+        ) : null}
 
         <Button
+          component={motion.button}
+          {...pressableMotionProps}
           variant="outlined"
           sx={eventStyles.eventDialogSecondaryButtonSx}
           onClick={handleCancel}
           disabled={saving || isClosing}
           fullWidth={isMobile}
         >
-          {t('cancel')}
+          {t("cancel")}
         </Button>
 
         <Button
+          component={motion.button}
+          {...pressableMotionProps}
           variant="contained"
           sx={eventStyles.eventDialogPrimaryButtonSx}
-          onClick={(e) =>
-            void handleSubmit(e as unknown as React.FormEvent)
-          }
+          onClick={(e) => void handleSubmit(e as unknown as React.FormEvent)}
           disabled={!canSave}
           fullWidth={isMobile}
         >
-          {t('save')}
+          {t("save")}
         </Button>
       </DialogActions>
 
-      {/* DELETE CONFIRM DIALOG */}
       <Dialog
         open={confirmingDelete}
         onClose={saving ? undefined : handleCancelDelete}
         fullWidth
         maxWidth="xs"
-        PaperProps={{ sx: eventStyles.eventDialogDeleteConfirmPaperSx }}
+        PaperProps={{
+          sx: eventStyles.eventDialogDeleteConfirmPaperSx,
+        }}
       >
         <DialogTitle sx={eventStyles.eventDialogDeleteConfirmTitleSx}>
-          {t('confirmDeleteTitle')}
+          {t("confirmDeleteTitle")}
         </DialogTitle>
 
-        <DialogContent
-          sx={eventStyles.eventDialogDeleteConfirmContentSx}
-        >
+        <DialogContent sx={eventStyles.eventDialogDeleteConfirmContentSx}>
           <Alert
             severity="warning"
             sx={eventStyles.eventDialogDeleteConfirmAlertSx}
           >
-            {t('confirmDeleteMessage')}
+            {t("confirmDeleteMessage")}
           </Alert>
         </DialogContent>
 
-        <DialogActions
-          sx={eventStyles.eventDialogDeleteConfirmActionsSx}
-        >
+        <DialogActions sx={eventStyles.eventDialogDeleteConfirmActionsSx}>
           <Button
+            component={motion.button}
+            {...pressableMotionProps}
             variant="outlined"
             sx={eventStyles.eventDialogSecondaryButtonSx}
             onClick={handleCancelDelete}
             disabled={saving}
             fullWidth={isMobile}
           >
-            {t('cancel')}
+            {t("cancel")}
           </Button>
 
           <Button
+            component={motion.button}
+            {...pressableMotionProps}
             color="error"
             variant="contained"
             sx={eventStyles.eventDialogDeleteConfirmButtonSx}
@@ -468,7 +464,7 @@ export function EventDialog({
             disabled={saving}
             fullWidth={isMobile}
           >
-            {t('confirmDelete')}
+            {t("confirmDelete")}
           </Button>
         </DialogActions>
       </Dialog>
