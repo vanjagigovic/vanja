@@ -23,7 +23,7 @@ export function CalendarTimeIndicator({
   );
 
   useEffect(() => {
-    let intervalId: number;
+    let intervalId: number | undefined;
 
     const updateCurrentMinutes = () => {
       setCurrentMinutes(getCurrentTimeMinutes(timeZone));
