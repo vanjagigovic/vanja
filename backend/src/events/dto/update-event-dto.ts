@@ -9,7 +9,6 @@ import {
   IsDateString,
 } from 'class-validator';
 import { EVENT_TYPES } from '../event-types';
-import { CreateEventDto } from './create-event-dto';
 
 export class UpdateEventDto {
   @IsOptional()
@@ -39,7 +38,7 @@ export class UpdateEventDto {
   repeatWeekly?: boolean;
 
   @ValidateIf(
-    (object: CreateEventDto) =>
+    (object: UpdateEventDto) =>
       object.repeatWeekly === true && object.repeatUntilUtc !== undefined,
   )
   @IsOptional()
