@@ -130,7 +130,7 @@ export function Calendar() {
         isTablet={isTablet}
         slotHeight={SLOT_HEIGHT}
         slotMinutes={SLOT_MINUTES}
-        slotPerDay={SLOTS_PER_DAY}
+        slotsPerDay={SLOTS_PER_DAY}
         hoursPerDay={HOURS_PER_DAY}
         onOpenCreateForSlot={openCreateForSlot}
         onEditEvent={openEditDialog}
