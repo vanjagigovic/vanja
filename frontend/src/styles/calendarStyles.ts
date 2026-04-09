@@ -185,6 +185,7 @@ export const calendarTodayButtonSx: SxProps<Theme> = (theme) => ({
   color: theme.custom.text.accent,
   borderColor: theme.custom.borders.default,
   bgcolor: theme.custom.fills.todayButton,
+  border: `1px solid ${theme.custom.borders.subtle}`,
 });
 
 export const calendarPrimaryActionSx: SxProps<Theme> = (theme) => ({
@@ -201,7 +202,6 @@ export const calendarViewSwitcherSx: SxProps<Theme> = (theme) => ({
   borderRadius: "10px",
   bgcolor: theme.custom.fills.viewSwitcher,
   border: `1px solid ${theme.custom.borders.subtle}`,
-  boxShadow: theme.custom.shadows.insetSoft,
   justifySelf: "center",
 });
 
@@ -216,7 +216,6 @@ export const calendarViewButtonSx =
     background: isActive
       ? theme.custom.gradients.activeToggle
       : theme.custom.fills.transparent,
-    boxShadow: isActive ? theme.custom.shadows.strong : "none",
   });
 
 export const calendarLoadingContentSx: SxProps<Theme> = {
@@ -300,18 +299,18 @@ export const currentTimeIndicatorDotSx: SxProps<Theme> = (theme) => ({
 export const timeGridDayHeaderCardSx =
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (isToday: boolean, _isSelected: boolean): SxProps<Theme> =>
-  (theme) => ({
-    p: { xs: 1, sm: 1.35 },
-    textAlign: "center",
-    borderRadius: "10px",
-    border: "1px solid",
-    bgcolor: theme.custom.fills.selectedSoft,
-    color: theme.palette.primary.main,
-    borderColor: theme.palette.primary.main,
-    boxShadow: isToday
-      ? `${theme.custom.shadows.focusRingStrong}, ${theme.custom.shadows.medium}`
-      : theme.custom.shadows.medium,
-  });
+    (theme) => ({
+      p: { xs: 1, sm: 1.35 },
+      textAlign: "center",
+      borderRadius: "10px",
+      border: "1px solid",
+      bgcolor: theme.custom.fills.selectedSoft,
+      color: theme.palette.primary.main,
+      borderColor: theme.palette.primary.main,
+      boxShadow: isToday
+        ? `${theme.custom.shadows.focusRingStrong}, ${theme.custom.shadows.medium}`
+        : theme.custom.shadows.medium,
+    });
 
 export const timeGridHourLabelSx =
   (
@@ -363,14 +362,13 @@ export const timeGridSlotCellSx =
     top: slotIndex * slotHeight,
     height: slotHeight,
     cursor: "pointer",
-    borderLeft: "1px solid transparent",
-    borderRight: "1px solid transparent",
+    border: "1px solid transparent",
     transition: "background 0.18s ease, box-shadow 0.18s ease",
     "&:hover": {
-      background: theme.custom.gradients.hoverSurface,
+      background: theme.custom.fills.sectionSoft,
       boxShadow: theme.custom.shadows.insetSoft,
-      borderLeftColor: theme.palette.primary.main,
-      borderRightColor: theme.palette.primary.main,
+      borderColor: theme.palette.primary.main,
+      borderRadius: 1,
     },
   });
 
@@ -434,7 +432,7 @@ export const monthGridDayCardSx =
     "&:hover": {
       transform: "translateY(-2px)",
       boxShadow: theme.custom.shadows.medium,
-      background: theme.custom.gradients.hoverSurface,
+      background: theme.custom.fills.sectionSoft,
       borderColor: theme.custom.borders.strong,
     },
   });
@@ -447,7 +445,9 @@ export const monthGridDayContentSx: SxProps<Theme> = {
 export const monthGridDayNumberSx =
   (isOutsideMonth: boolean): SxProps<Theme> =>
   (theme) => ({
-    color: isOutsideMonth ? theme.palette.primary.main : theme.palette.primary.main,
+    color: isOutsideMonth
+      ? theme.palette.primary.main
+      : theme.palette.primary.main,
     fontWeight: 600,
     fontSize: { xs: "0.95rem", sm: "1.1rem" },
   });
