@@ -1,4 +1,6 @@
-import { API_BASE_URL } from "./api-config";
+import { getApiBaseUrl } from "./api-config";
+
+const API_BASE_URL = getApiBaseUrl();
 
 export class ApiError extends Error {
   details: unknown;
