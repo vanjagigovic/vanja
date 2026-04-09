@@ -13,6 +13,7 @@ export function mapEventResponseToCalendarEvent(
     timeZone: dto.timeZone,
     eventType: dto.eventType,
     repeatWeekly: dto.repeatWeekly,
+    repeatUntilUtc: dto.repeatUntilUtc,
     reminderEnabled: dto.reminderEnable,
     occurrenceId: dto.occurrenceId,
     baseEventId: dto.baseEventId,

@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next";
+
 export type CalendarMutationSuccessKey =
   | "eventCreated"
   | "eventUpdated"
@@ -7,8 +8,6 @@ export type CalendarMutationSuccessKey =
 interface RunCalendarMutationOptions {
   mutation: () => Promise<unknown>;
   loadEvents: () => Promise<unknown>;
-  dialogOpen: boolean,
-  setDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setSuggestion: (value: { startUtc: string; endUtc: string } | null) => void;
   setSuccessMessage: (value: string) => void;
   t: TFunction;

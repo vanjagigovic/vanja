@@ -11,20 +11,11 @@ export function getCalendarViewLabels(
   };
 }
 
-  export function getCalendarHeaderText(t: TFunction) {
-    return {
-      appTitle: t("appTitle"),
-      appSubtitle: t("appSubtitle"),
-      newEventLabel: t('newEvent'),
-      viewTimeZoneLabel: t('viewTimeZone'),
-    };
-  }
-
   export function getCalendarControlText(t: TFunction){
     return{
         previuosLabel: t('previous'),
-        todayLabel: t('Today'),
-        nextLabel: t('nextLabel'),
+        todayLabel: t('today'),
+        nextLabel: t('next'),
         suggestionLabel: t('suggestion'),
         suggestionActionLabel: t('useSuggestedTime'),
     };
