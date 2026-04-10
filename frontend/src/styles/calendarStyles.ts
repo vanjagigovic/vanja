@@ -136,7 +136,7 @@ export const calendarHeroTitleSx: SxProps<Theme> = (theme) => ({
   fontSize: { xs: "1.9rem", md: "2.5rem" },
   fontWeight: 700,
   letterSpacing: "-0.04em",
-  color: theme.custom.text.hero,
+  color: theme.custom.text.accent,
 });
 
 export const calendarHeroSubtitleSx: SxProps<Theme> = (theme) => ({
@@ -197,24 +197,25 @@ export const calendarPrimaryActionSx: SxProps<Theme> = (theme) => ({
   boxShadow: theme.custom.shadows.strong,
 });
 
-export const calendarViewSwitcherSx: SxProps<Theme> = (theme) => ({
+export const calendarViewSwitcherSx: SxProps<Theme> = () => ({
   p: 0.5,
   borderRadius: "10px",
-  bgcolor: theme.custom.fills.viewSwitcher,
-  border: `1px solid ${theme.custom.borders.subtle}`,
   justifySelf: "center",
+  display: "flex",
 });
 
 export const calendarViewButtonSx =
   (isActive: boolean): SxProps<Theme> =>
   (theme) => ({
+    flex: 1,
     borderRadius: "10px",
+    border: `1px solid ${theme.custom.borders.subtle}`,
     px: 2,
     color: isActive
       ? theme.palette.primary.contrastText
       : theme.palette.text.secondary,
     background: isActive
-      ? theme.custom.gradients.activeToggle
+      ? theme.custom.text.accent
       : theme.custom.fills.transparent,
   });
 
