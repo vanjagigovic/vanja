@@ -377,6 +377,7 @@ export function EventDialog({
               suggestionActionLabel={controlText.suggestionActionLabel}
               viewTimeZone={timeZone}
               onUseSuggestedTime={applySuggestedTime}
+              isMobile={isMobile}
             />
           </Stack>
         </LocalizationProvider>

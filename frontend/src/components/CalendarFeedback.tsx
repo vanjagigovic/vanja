@@ -1,6 +1,7 @@
 import { Alert, Button } from "@mui/material";
 import { DateTime } from "luxon";
 import { errorAlertSx, infoAlertSx } from "../styles/alertStyles";
+import { eventDialogSuggestedTimeButtonSx } from "../styles/eventStyles";
 
 interface CalendarFeedbackProps {
   error: string;
@@ -8,6 +9,7 @@ interface CalendarFeedbackProps {
   suggestionLabel: string;
   suggestionActionLabel: string;
   viewTimeZone: string;
+  isMobile: boolean;
   onUseSuggestedTime?: (suggestion: {
     startUtc: string;
     endUtc: string;
@@ -20,6 +22,7 @@ export function CalendarFeedback({
   suggestionLabel,
   suggestionActionLabel,
   viewTimeZone,
+  isMobile,
   onUseSuggestedTime,
 }: CalendarFeedbackProps) {
   const suggestionRange = suggestion
@@ -43,13 +46,7 @@ export function CalendarFeedback({
                 color="inherit"
                 size="small"
                 onClick={() => onUseSuggestedTime(suggestion)}
-                sx={{
-                  border: "1px solid rgba(255,255,255,0.5)",
-                  padding: "2px 10px",
-                  borderRadius: "6px",
-                  textTransform: "none",
-                  fontSize: "12px",
-                }}
+                sx={eventDialogSuggestedTimeButtonSx(isMobile)}
               >
                 {suggestionActionLabel}
               </Button>
