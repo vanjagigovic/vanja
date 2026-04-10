@@ -97,6 +97,8 @@ export class EventsService {
       reminderEnabled: createEventDto.reminderEnabled ?? false,
     });
 
+    this.validateNotInPast(candidate.startUtc);
+
     await this.ensureNoOverlap(candidate);
 
     const [created] = await this.db
@@ -193,6 +195,12 @@ export class EventsService {
 
     if (end <= start) {
       throw new BadRequestException('End time must be after start time');
+    }
+  }
+
+  private validateNotInPast(startUtc: string) {
+    if (new Date(startUtc).getTime() < Date.now()) {
+      throw new BadRequestException('Events cannot be created in the past');
     }
   }
 

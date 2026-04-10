@@ -1,12 +1,12 @@
-import { useCallback, useMemo, useState } from 'react';
-import { runAsyncAction } from '../helpers/client-state-helpers';
-import { getSupportedTimeZones } from '../utils/calendar-utils';
+import { useCallback, useMemo, useState } from "react";
+import { runAsyncAction } from "../helpers/client-state-helpers";
+import { getSupportedTimeZones } from "../utils/calendar-utils";
 import {
   buildEventPayload,
   convertedZoneDateTime,
   getEventDialogDefaults,
-} from '../helpers/event-dialog-helpers';
-import type { CalendarEvent, EventPayload } from '../types/types';
+} from "../helpers/event-dialog-helpers";
+import type { CalendarEvent, EventPayload } from "../types/types";
 
 type EventDialogFieldErrors = {
   title?: string;
@@ -47,33 +47,66 @@ export function useEventDialogState({
     defaults.reminderEnabled,
   );
 
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<EventDialogFieldErrors>({});
 
   const timeZones = useMemo(() => getSupportedTimeZones(), []);
 
+  const candidateStartTime = useMemo(() => {
+    if(!startLocal) {
+      return Number.NaN;
+    }
+    return new Date(buildEventPayload({
+      title,
+      timeZone,
+      startLocal,
+      endLocal,
+      eventType,
+      repeatWeekly,
+      repeatUntil,
+      reminderEnabled,
+    }).startUtc).getTime();
+  },[title, timeZone, startLocal, endLocal, eventType, repeatWeekly, repeatUntil, reminderEnabled])
+
   const validateRequiredFields = useCallback((): EventDialogFieldErrors => {
     const nextErrors: EventDialogFieldErrors = {};
 
     if (!title.trim()) {
-      nextErrors.title = 'Title is required';
+      nextErrors.title = "Title is required";
     }
 
     if (!startLocal) {
-      nextErrors.startLocal = 'Start date is required';
+      nextErrors.startLocal = "Start date is required";
     }
 
     if (!endLocal) {
-      nextErrors.endLocal = 'End date is required';
+      nextErrors.endLocal = "End date is required";
     }
 
     if (repeatWeekly && !repeatUntil) {
-      nextErrors.repeatUntil = 'Repeat-until date is required';
+      nextErrors.repeatUntil = "Repeat-until date is required";
+    }
+
+    if (
+      !event &&
+      startLocal &&
+      !Number.isNaN(new Date(candidateStartTime).getTime()) &&
+      new Date(candidateStartTime).getTime() < Date.now()
+    ) {
+      nextErrors.startLocal = "Start date cannot be in the past";
     }
 
     return nextErrors;
-  }, [title, startLocal, endLocal, repeatWeekly, repeatUntil]);
+  }, [
+    title,
+    startLocal,
+    endLocal,
+    repeatWeekly,
+    repeatUntil,
+    event,
+    candidateStartTime
+  ]);
 
   const handleTimeZoneChange = useCallback(
     (nextZone: string) => {
@@ -111,7 +144,7 @@ export function useEventDialogState({
 
       if (Object.keys(nextErrors).length > 0) {
         setFieldErrors(nextErrors);
-        setError('Please fill in all required fields');
+        setError(nextErrors.startLocal ?? "Please fill in all required fields");
         return;
       }
 
@@ -121,7 +154,7 @@ export function useEventDialogState({
         action: () => onSave(payload),
         setError,
         setSaving,
-        fallbackMessage: 'Failed to save event',
+        fallbackMessage: "Failed to save event",
       });
     },
     [onSave, payload, validateRequiredFields],
@@ -136,7 +169,7 @@ export function useEventDialogState({
       action: onDelete,
       setError,
       setSaving,
-      fallbackMessage: 'Failed to delete event',
+      fallbackMessage: "Failed to delete event",
     });
   }, [onDelete]);
 
