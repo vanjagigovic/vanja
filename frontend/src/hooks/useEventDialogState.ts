@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { runAsyncAction } from "../helpers/client-state-helpers";
-import { getSupportedTimeZones } from "../utils/calendar-utils";
+import { runAsyncAction, getApiErrorState } from "../helpers/client-state-helpers";
+import { getSupportedTimeZones, utcIsoToZonedInput } from "../utils/calendar-utils";
 import {
   buildEventPayload,
   convertedZoneDateTime,
@@ -48,6 +48,7 @@ export function useEventDialogState({
   );
 
   const [error, setError] = useState("");
+  const [suggestion, setSuggestion] = useState<{startUtc: string, endUtc: string} | null> (null);
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<EventDialogFieldErrors>({});
 
@@ -136,6 +137,29 @@ export function useEventDialogState({
     reminderEnabled,
   });
 
+ const applySuggestedTime = useCallback(
+  (nextSuggestion: { startUtc: string; endUtc: string }) => {
+    setStartLocal(
+      utcIsoToZonedInput(nextSuggestion.startUtc, timeZone)
+    );
+
+    setEndLocal(
+      utcIsoToZonedInput(nextSuggestion.endUtc, timeZone)
+    );
+
+    setSuggestion(null);
+    setError('');
+    setFieldErrors((currentErrors) => ({
+      ...currentErrors,
+      startLocal: undefined,
+      endLocal: undefined,
+    }));
+  },
+  [timeZone]
+);
+
+
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -155,6 +179,11 @@ export function useEventDialogState({
         setError,
         setSaving,
         fallbackMessage: "Failed to save event",
+        onError: (submitError) => {
+          const apiErorState = getApiErrorState(submitError);
+          setError(apiErorState.message);
+          setSuggestion(apiErorState.suggestedTime);
+        }
       });
     },
     [onSave, payload, validateRequiredFields],
@@ -191,9 +220,12 @@ export function useEventDialogState({
     reminderEnabled,
     setReminderEnabled,
     error,
+    suggestion,
+    setSuggestion,
     fieldErrors,
     saving,
     timeZones,
+    applySuggestedTime,
     handleSubmit,
     handleDelete,
     canSave: !saving,

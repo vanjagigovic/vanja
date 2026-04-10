@@ -39,13 +39,11 @@ import {
   pressableMotionProps,
   quickMotionTransition,
 } from "../helpers/motion-presets";
-
-import { errorAlertSx } from "../styles/alertStyles";
 import * as eventStyles from "../styles/eventStyles";
-
 import type { CalendarEvent, EventPayload } from "../types/types";
-
 import { useEventDialogState } from "../hooks/useEventDialogState";
+import { CalendarFeedback } from "./CalendarFeedback";
+import { getCalendarControlText } from "../helpers/calendar-presentation-helpers";
 
 interface EventDialogProps {
   event: CalendarEvent | null;
@@ -73,6 +71,7 @@ export function EventDialog({
   const [closeDirection, setCloseDirection] = useState<
     "left" | "right" | "center"
   >("center");
+  const controlText = getCalendarControlText(t);
 
   const closeWithAnimation = useCallback(
     async (direction: "left" | "right") => {
@@ -124,11 +123,13 @@ export function EventDialog({
     reminderEnabled,
     setReminderEnabled,
     error,
+    suggestion,
     fieldErrors,
     saving,
     timeZones,
     handleSubmit,
     handleDelete,
+    applySuggestedTime,
     canSave,
   } = useEventDialogState({
     event,
@@ -369,11 +370,14 @@ export function EventDialog({
               />
             ) : null}
 
-            {error ? (
-              <Alert severity="error" sx={errorAlertSx}>
-                {error}
-              </Alert>
-            ) : null}
+            <CalendarFeedback
+              error={error}
+              suggestion={suggestion}
+              suggestionLabel={controlText.suggestionLabel}
+              suggestionActionLabel={controlText.suggestionActionLabel}
+              viewTimeZone={timeZone}
+              onUseSuggestedTime={applySuggestedTime}
+            />
           </Stack>
         </LocalizationProvider>
       </DialogContent>

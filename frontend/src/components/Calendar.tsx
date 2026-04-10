@@ -14,7 +14,6 @@ import {
 //components
 import { CalendarMonthGrid } from "./CalendarMonthGrid";
 import { CalendarControls } from "./CalendarControls";
-import { CalendarFeedback } from "./CalendarFeedback";
 import { CalendarTimeGrid } from "./CalendarTimeGrid";
 import { EventDialog } from "./EventDialog";
 //custom hooks
@@ -63,10 +62,8 @@ export function Calendar() {
     events,
     loading,
     error,
-    suggestion,
     successMessage,
     setSuccessMessage,
-    setSuggestion,
     handleCreate,
     handleUpdate,
     handleDelete,
@@ -91,15 +88,6 @@ export function Calendar() {
   const controlText = getCalendarControlText(t);
   const viewLabels = getCalendarViewLabels(t);
 
-  console.log("isMonthView =", isMonthView);
-  console.log("KEY:", `${currentView}-${rangeLabel}`);
-  function handleUseSuggestedTime(nextSuggestion: {
-    startUtc: string;
-    endUtc: string;
-  }) {
-    setSuggestion(null);
-    openCreateDialog(nextSuggestion.startUtc, nextSuggestion.endUtc);
-  }
   function renderContent() {
     if (loading) {
       return (
@@ -175,14 +163,7 @@ export function Calendar() {
           onChangeView={setCurrentView}
         />
 
-        <CalendarFeedback
-          error={error}
-          suggestion={suggestion}
-          suggestionLabel={controlText.suggestionLabel}
-          suggestionActionLabel={controlText.suggestionActionLabel}
-          viewTimeZone={viewTimeZone}
-          onUseSuggestedTime={handleUseSuggestedTime}
-        />
+        {error ? <Alert severity="error">{error}</Alert> : null}
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -237,13 +218,6 @@ export function Calendar() {
         >
           {successMessage}
         </Alert>
-      </Snackbar>
-      <Snackbar
-        open={Boolean(suggestion)}
-        autoHideDuration={7000}
-        onClose={() => setSuggestion(null)}
-      >
-        <Box />
       </Snackbar>
     </>
   );

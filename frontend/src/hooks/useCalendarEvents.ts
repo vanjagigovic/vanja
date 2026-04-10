@@ -5,7 +5,7 @@ import type { TFunction } from 'i18next';
 import { eventsApi } from '../api/events-api';
 import { runCalendarMutation } from '../helpers/calendar-events-helpers';
 import { buildRangeForView, scheduleReminderNotifications } from '../utils/calendar-utils';
-import { getApiErrorState, getErrorMessage } from '../helpers/client-state-helpers';
+import { getErrorMessage } from '../helpers/client-state-helpers';
 import type { CalendarViewMode, EventPayload } from '../types/types';
 
 interface UseCalendarEventsParams {
@@ -25,8 +25,6 @@ export function useCalendarEvents({
 }: UseCalendarEventsParams) {
   const queryClient = useQueryClient();
 
-  const [actionError, setActionError] = useState('');
-  const [suggestion, setSuggestion] = useState<{ startUtc: string; endUtc: string } | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   const range = useMemo(
@@ -34,11 +32,6 @@ export function useCalendarEvents({
     [currentDate, currentView, viewTimeZone],
   );
 
-  const handleApiError = useCallback((err: unknown) => {
-    const apiErrorState = getApiErrorState(err);
-    setActionError(apiErrorState.message);
-    setSuggestion(apiErrorState.suggestedTime);
-  }, []);
 
   const eventsQuery = useQuery({
     queryKey: [
@@ -80,17 +73,13 @@ export function useCalendarEvents({
   const loading = eventsQuery.isPending;
 
   const error =
-    actionError ||
-    (eventsQuery.error
-      ? getErrorMessage(eventsQuery.error, 'Failed to load events')
-      : '');
+    eventsQuery.error ? getErrorMessage(eventsQuery.error, 'Failed to load events') : '';
 
   useEffect(() => {
     scheduleReminderNotifications(events, viewTimeZone, t);
   }, [events, t, viewTimeZone]);
 
   const loadEvents = useCallback(async () => {
-    setActionError('');
     await queryClient.invalidateQueries({
       queryKey: ['calendar-events'],
     });
@@ -102,21 +91,18 @@ export function useCalendarEvents({
       successTranslationKey: 'eventCreated' | 'eventUpdated' | 'eventDeleted',
       options?: { rethrow?: boolean },
     ) => {
-      setActionError('');
 
       await runCalendarMutation({
         mutation,
         loadEvents,
-        setSuggestion,
         setSuccessMessage,
         t,
         successTranslationKey,
         onAfterMutation,
-        onError: handleApiError,
         rethrow: options?.rethrow,
       });
     },
-    [handleApiError, loadEvents, onAfterMutation, t],
+    [loadEvents, onAfterMutation, t],
   );
 
   const handleCreate = useCallback(
@@ -155,9 +141,7 @@ export function useCalendarEvents({
     events,
     loading,
     error,
-    suggestion,
     successMessage,
-    setSuggestion,
     setSuccessMessage,
     loadEvents,
     handleCreate,

@@ -23,8 +23,8 @@ export function CalendarFeedback({
   onUseSuggestedTime,
 }: CalendarFeedbackProps) {
   const suggestionRange = suggestion
-    ? `${DateTime.fromISO(suggestion.startUtc, { zone: 'utc' }).setZone(viewTimeZone).toFormat('ff')} - ${DateTime.fromISO(suggestion.endUtc, { zone: 'utc' }).setZone(viewTimeZone).toFormat('t')}`
-    : '';
+    ? `${DateTime.fromISO(suggestion.startUtc, { zone: "utc" }).setZone(viewTimeZone).toFormat("ff")} - ${DateTime.fromISO(suggestion.endUtc, { zone: "utc" }).setZone(viewTimeZone).toFormat("t")}`
+    : "";
 
   return (
     <>
@@ -43,6 +43,13 @@ export function CalendarFeedback({
                 color="inherit"
                 size="small"
                 onClick={() => onUseSuggestedTime(suggestion)}
+                sx={{
+                  border: "1px solid rgba(255,255,255,0.5)",
+                  padding: "2px 10px",
+                  borderRadius: "6px",
+                  textTransform: "none",
+                  fontSize: "12px",
+                }}
               >
                 {suggestionActionLabel}
               </Button>
