@@ -44,9 +44,10 @@ type UpcomongEventItem = {
   id: string;
   title: string;
   timeLabel: string;
-}
+};
 interface CalendarControlsProps {
   isMobile: boolean;
+  showUpcomingEvents: boolean;
   currentView: CalendarViewMode;
   rangeLabel: string;
   previousLabel: string;
@@ -70,6 +71,7 @@ interface CalendarControlsProps {
 
 export function CalendarControls({
   isMobile,
+  showUpcomingEvents,
   currentView,
   rangeLabel,
   todayLabel,
@@ -92,22 +94,34 @@ export function CalendarControls({
     <Card sx={calendarSurfaceCardSx}>
       <CardContent sx={calendarControlsContentSx}>
         <Box sx={calendarTopActionBarSx}>
-          <Box sx={calendarUpcomingPanelSx}>
-            <Typography sx={calendarUpcomingTitleSx}>{upcomingEventsLabel}</Typography>
-            {upcomingEvents.length > 0 ? (
-              <Box sx={calendarUpcomingListSx}>
-                {upcomingEvents.map((event) => (
-                  <Box key={event.id} sx={calendarUpcomingItemSx}>
-                    <Typography sx={calendarUpcomingTimeSx}>{event.timeLabel}</Typography>
-                    <Typography variant="body2" noWrap  sx={{ flex: 1 }}>{event.title}</Typography>
-                  </ Box> 
-                ))}
-              </Box>
-            ) : (
-              <Typography sx={calendarUpcomingEmptySx}>{noUpcomingEventsLabel}</Typography>
-            )}
-          </Box>
+          {showUpcomingEvents ? (
+            <Box sx={calendarUpcomingPanelSx}>
+              <Typography sx={calendarUpcomingTitleSx}>
+                {upcomingEventsLabel}
+              </Typography>
 
+              {upcomingEvents.length > 0 ? (
+                <Box sx={calendarUpcomingListSx}>
+                  {upcomingEvents.map((event) => (
+                    <Box key={event.id} sx={calendarUpcomingItemSx}>
+                      <Typography sx={calendarUpcomingTimeSx}>
+                        {event.timeLabel}
+                      </Typography>
+                      <Typography variant="body2" noWrap sx={{ flex: 1 }}>
+                        {event.title}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Typography sx={calendarUpcomingEmptySx}>
+                  {noUpcomingEventsLabel}
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            <Box />
+          )}
           <Box sx={calendarHeroSectionSx}>
             <Typography component="h1" sx={calendarHeroTitleSx}>
               {rangeLabel}
@@ -143,7 +157,6 @@ export function CalendarControls({
               </Button>
             </Box>
           </Box>
-
           <Box sx={calendarActionGroupSx}>
             <FormControl sx={calendarTimeZoneControlSx} size="small">
               <InputLabel shrink>{viewTimeZoneLabel}</InputLabel>
@@ -183,7 +196,6 @@ export function CalendarControls({
         >
           {(["day", "week", "month"] as CalendarViewMode[]).map((view) => (
             <Button
-              
               component={motion.button}
               {...pressableMotionProps}
               key={view}

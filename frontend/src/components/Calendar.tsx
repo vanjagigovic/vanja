@@ -89,13 +89,13 @@ export function Calendar() {
       viewTimeZone,
     });
 
-    useCalendarKeyboardShortcuts({
-      enabled: modalState === null,
-      onCreateEvent: openCreateDialog,
-      onPrevious: goPrevious,
-      onNext: goNext,
-      onToday: goToday,
-    });
+  useCalendarKeyboardShortcuts({
+    enabled: modalState === null,
+    onCreateEvent: openCreateDialog,
+    onPrevious: goPrevious,
+    onNext: goNext,
+    onToday: goToday,
+  });
 
   const headerText = {
     nextEventLabel: t("newEvent"),
@@ -104,27 +104,42 @@ export function Calendar() {
 
   const controlText = getCalendarControlText(t);
   const viewLabels = getCalendarViewLabels(t);
+  const todayInZone = DateTime.now().setZone(viewTimeZone);
+  const isViewingToday = (() => {
+    if (currentView === "day") {
+      return DateTime.fromJSDate(currentDate)
+        .setZone(viewTimeZone)
+        .hasSame(todayInZone, "day");
+    }
+    if (currentView === "week") {
+      const currentWeekStart = DateTime.fromJSDate(currentDate)
+        .setZone(viewTimeZone)
+        .startOf("week");
+      const todayWeekStart = todayInZone.startOf("week");
+      return currentWeekStart.hasSame(todayWeekStart, "day");
+    }
+    return DateTime.fromJSDate(currentDate)
+      .setZone(viewTimeZone)
+      .hasSame(todayInZone, "month");
+  })();
 
-
-const upcomingEvents = events
-  .filter((event) => eventOccursOnDateInZone(event, new Date(), viewTimeZone))
-  .sort((first, second) => {
-    return (
-      DateTime.fromISO(first.startUtc, { zone: "utc" }).toMillis() -
-      DateTime.fromISO(second.startUtc, { zone: "utc" }).toMillis()
-    );
-  })
-  .filter((event) => {
-    return (
-      DateTime.fromISO(event.endUtc, { zone: "utc" }).toMillis() >= now
-    );
-  })
-  // .slice(0, 5)
-  .map((event) => ({
-    id: event.occurrenceId,
-    title: event.title,
-    timeLabel: formatEventRange(event, viewTimeZone),
-  }));
+  const upcomingEvents = events
+    .filter((event) => eventOccursOnDateInZone(event, new Date(), viewTimeZone))
+    .sort((first, second) => {
+      return (
+        DateTime.fromISO(first.startUtc, { zone: "utc" }).toMillis() -
+        DateTime.fromISO(second.startUtc, { zone: "utc" }).toMillis()
+      );
+    })
+    .filter((event) => {
+      return DateTime.fromISO(event.endUtc, { zone: "utc" }).toMillis() >= now;
+    })
+    // .slice(0, 5)
+    .map((event) => ({
+      id: event.occurrenceId,
+      title: event.title,
+      timeLabel: formatEventRange(event, viewTimeZone),
+    }));
 
   function renderContent() {
     if (loading) {
@@ -183,6 +198,7 @@ const upcomingEvents = events
       <Box sx={calendarPageSx}>
         <CalendarControls
           isMobile={isMobile}
+          showUpcomingEvents={isViewingToday}
           currentView={currentView}
           rangeLabel={rangeLabel}
           previousLabel={controlText.previuosLabel}
@@ -228,8 +244,6 @@ const upcomingEvents = events
             </Box>
           </motion.div>
         </AnimatePresence>
-
-
       </Box>
 
       {modalState?.mode === "create" ? (
