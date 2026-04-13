@@ -36,6 +36,7 @@ import {
 } from "../utils/calendar-utils";
 import { DateTime } from "luxon";
 import { useState } from "react";
+import { useCalendarKeyboardShortcuts } from "../hooks/useCalendarKeyboardShortcuts";
 
 const SLOT_HEIGHT = 40;
 const SLOT_MINUTES = 30;
@@ -86,6 +87,14 @@ export function Calendar() {
       currentView,
       currentDate,
       viewTimeZone,
+    });
+
+    useCalendarKeyboardShortcuts({
+      enabled: modalState === null,
+      onCreateEvent: openCreateDialog,
+      onPrevious: goPrevious,
+      onNext: goNext,
+      onToday: goToday,
     });
 
   const headerText = {
