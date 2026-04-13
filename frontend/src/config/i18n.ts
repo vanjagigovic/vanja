@@ -10,8 +10,6 @@ void i18next.use(initReactI18next).init({
     resources: { 
         en: {
             translation: {
-                appTitle: 'Calendar',
-                appSubtitle: 'Single-user calendar',
                 newEvent: 'New event',
                 previous: 'previous',
                 next: 'next',
