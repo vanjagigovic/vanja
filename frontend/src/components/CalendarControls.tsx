@@ -30,10 +30,21 @@ import {
   calendarTimeZoneMenuProps,
   calendarTodayButtonSx,
   calendarTopActionBarSx,
+  calendarUpcomingEmptySx,
+  calendarUpcomingItemSx,
+  calendarUpcomingListSx,
+  calendarUpcomingPanelSx,
+  calendarUpcomingTimeSx,
+  calendarUpcomingTitleSx,
   calendarViewButtonSx,
   calendarViewSwitcherSx,
 } from "../styles/calendarStyles";
 
+type UpcomongEventItem = {
+  id: string;
+  title: string;
+  timeLabel: string;
+}
 interface CalendarControlsProps {
   isMobile: boolean;
   currentView: CalendarViewMode;
@@ -43,9 +54,12 @@ interface CalendarControlsProps {
   nextLabel: string;
   newEventLabel: string;
   viewTimeZoneLabel: string;
+  upcomingEventsLabel: string;
+  noUpcomingEventsLabel: string;
   timeZones: string[];
   viewTimeZone: string;
   viewLabels: Record<CalendarViewMode, string>;
+  upcomingEvents: UpcomongEventItem[];
   onPrevious: () => void;
   onToday: () => void;
   onNext: () => void;
@@ -63,6 +77,9 @@ export function CalendarControls({
   viewTimeZoneLabel,
   timeZones,
   viewTimeZone,
+  upcomingEvents,
+  upcomingEventsLabel,
+  noUpcomingEventsLabel,
   viewLabels,
   onPrevious,
   onToday,
@@ -75,7 +92,21 @@ export function CalendarControls({
     <Card sx={calendarSurfaceCardSx}>
       <CardContent sx={calendarControlsContentSx}>
         <Box sx={calendarTopActionBarSx}>
-          <Box />
+          <Box sx={calendarUpcomingPanelSx}>
+            <Typography sx={calendarUpcomingTitleSx}>{upcomingEventsLabel}</Typography>
+            {upcomingEvents.length > 0 ? (
+              <Box sx={calendarUpcomingListSx}>
+                {upcomingEvents.map((event) => (
+                  <Box key={event.id} sx={calendarUpcomingItemSx}>
+                    <Typography sx={calendarUpcomingTimeSx}>{event.timeLabel}</Typography>
+                    <Typography variant="body2" noWrap  sx={{ flex: 1 }}>{event.title}</Typography>
+                  </ Box> 
+                ))}
+              </Box>
+            ) : (
+              <Typography sx={calendarUpcomingEmptySx}>{noUpcomingEventsLabel}</Typography>
+            )}
+          </Box>
 
           <Box sx={calendarHeroSectionSx}>
             <Typography component="h1" sx={calendarHeroTitleSx}>

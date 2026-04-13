@@ -30,6 +30,12 @@ import {
   calendarPageSx,
 } from "../styles/calendarStyles";
 import { successSnackbarAlertSx } from "../styles/alertStyles";
+import {
+  eventOccursOnDateInZone,
+  formatEventRange,
+} from "../utils/calendar-utils";
+import { DateTime } from "luxon";
+import { useState } from "react";
 
 const SLOT_HEIGHT = 40;
 const SLOT_MINUTES = 30;
@@ -39,6 +45,8 @@ const SLOTS_PER_DAY = 48;
 export function Calendar() {
   const { t } = useTranslation();
   const theme = useTheme();
+  // const [now] = useState(() => Date.now());
+  const [now] = useState(() => DateTime.utc().toMillis());
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const {
@@ -87,6 +95,27 @@ export function Calendar() {
 
   const controlText = getCalendarControlText(t);
   const viewLabels = getCalendarViewLabels(t);
+
+
+const upcomingEvents = events
+  .filter((event) => eventOccursOnDateInZone(event, new Date(), viewTimeZone))
+  .sort((first, second) => {
+    return (
+      DateTime.fromISO(first.startUtc, { zone: "utc" }).toMillis() -
+      DateTime.fromISO(second.startUtc, { zone: "utc" }).toMillis()
+    );
+  })
+  .filter((event) => {
+    return (
+      DateTime.fromISO(event.endUtc, { zone: "utc" }).toMillis() >= now
+    );
+  })
+  // .slice(0, 5)
+  .map((event) => ({
+    id: event.occurrenceId,
+    title: event.title,
+    timeLabel: formatEventRange(event, viewTimeZone),
+  }));
 
   function renderContent() {
     if (loading) {
@@ -152,9 +181,12 @@ export function Calendar() {
           nextLabel={controlText.nextLabel}
           newEventLabel={headerText.nextEventLabel}
           viewTimeZoneLabel={headerText.viewTimeZone}
+          upcomingEventsLabel={t("upcomingEventsToday")}
+          noUpcomingEventsLabel={t("noUpcomingEventsToday")}
           timeZones={timeZones}
           viewTimeZone={viewTimeZone}
           viewLabels={viewLabels}
+          upcomingEvents={upcomingEvents}
           onPrevious={goPrevious}
           onToday={goToday}
           onNext={goNext}
@@ -175,7 +207,14 @@ export function Calendar() {
             }}
             key={`${currentView}-${rangeLabel}`}
           >
-            <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <Box
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               {renderContent()}
             </Box>
           </motion.div>

@@ -452,3 +452,70 @@ export const monthGridDayNumberSx =
     fontWeight: 600,
     fontSize: { xs: "0.95rem", sm: "1.1rem" },
   });
+
+export const calendarUpcomingPanelSx: SxProps<Theme> = (theme) => ({
+  display: "grid",
+  gap: 0.75,
+  justifyItems: { xs: "center", md: "start" },
+
+  width: "50%",
+  minWidth: 0,
+  p: { xs: 0, md: 1.25 },
+
+  borderRadius: "10px",
+  background: theme.custom.gradients.dialogAccent,
+  border: `1px solid ${theme.custom.glass.surface.border}`,
+  boxShadow: theme.custom.shadows.soft,
+});
+
+export const calendarUpcomingTitleSx: SxProps<Theme> = (theme) => ({
+  fontSize: "0.78rem",
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: theme.custom.text.accent,
+});
+
+export const calendarUpcomingListSx: SxProps<Theme> = (theme) => ({
+  display: "grid",
+  gap: 0.75,
+  width: "100%",
+  maxHeight: 100,
+  overflowY: "auto",
+
+  scrollbarWidth: "thin",
+  scrollbarColor: `${theme.palette.grey[500]} transparent`,
+
+  "&::-webkit-scrollbar": {
+    width: "4px",
+  },
+  "&::-webkit-scrollbar-thumb": {
+    background: theme.palette.grey[500],
+    borderRadius: "8px",
+  },
+  "&::-webkit-scrollbar-thumb:hover": {
+    background: theme.palette.grey[700],
+  },
+});
+
+export const calendarUpcomingItemSx: SxProps<Theme> = (theme) => ({
+  display: "flex",
+  gap: 1,
+  minWidth: 0,
+  p: 0.9,
+  borderRadius: "10px",
+  backgroundColor: theme.custom.glass.surface.background,
+  border: `1px solid ${theme.custom.borders.strong}`,
+});
+
+export const calendarUpcomingTimeSx: SxProps<Theme> = (theme) => ({
+  fontSize: "0.78rem",
+  fontWeight: 700,
+
+  color: theme.custom.text.accent,
+});
+
+export const calendarUpcomingEmptySx: SxProps<Theme> = (theme) => ({
+  fontSize: "0.9rem",
+  color: theme.palette.text.secondary,
+});

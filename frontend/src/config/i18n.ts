@@ -24,6 +24,8 @@ void i18next.use(initReactI18next).init({
                 end: 'End',
                 timeZone:'Time zone',
                 viewTimeZone: "View time zone",
+                upcomingEventsToday: "Upcoming today",
+                noUpcomingEventsToday: "No more events today",
                 eventType: 'Event type',
                 repeatWeekly: 'Repeat Weekly',
                 repeatUntil: 'Repeat Until',
