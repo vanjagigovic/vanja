@@ -6,7 +6,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { and, eq, isNull, lte } from 'drizzle-orm';
+import { and, eq, isNull, isNotNull, lte, or } from 'drizzle-orm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { createHash, randomBytes } from 'node:crypto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../db/db.module';
@@ -198,10 +199,16 @@ export class AuthService {
     });
   }
 
+  @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredSessions(): Promise<void> {
     await this.db
       .delete(sessionsTable)
-      .where(lte(sessionsTable.expiresAt, new Date()));
+      .where(
+        or(
+          lte(sessionsTable.expiresAt, new Date()),
+          isNotNull(sessionsTable.revokedAt),
+        ),
+      );
   }
 
   private normalizeEmail(email: string): string {

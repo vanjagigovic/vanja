@@ -33,6 +33,26 @@ describe('AuthService', () => {
     };
   }
 
+  function collectColumnNames(
+    value: unknown,
+    names = new Set<string>(),
+    seen = new Set<object>(),
+  ) {
+    if (!value || typeof value !== 'object' || seen.has(value)) {
+      return names;
+    }
+
+    seen.add(value);
+    for (const [key, child] of Object.entries(value)) {
+      if (key === 'name' && typeof child === 'string') {
+        names.add(child);
+      }
+      collectColumnNames(child, names, seen);
+    }
+
+    return names;
+  }
+
   it('registers a normalized email and stores a hashed refresh token', async () => {
     db.select.mockReturnValue(selectResult([]));
     passwordService.hash.mockResolvedValue('password-hash');
@@ -223,6 +243,24 @@ describe('AuthService', () => {
       'timestamp',
       'userId',
     ]);
+  });
+
+  it('cleans expired and revoked sessions without targeting active sessions', async () => {
+    let cleanupPredicate: unknown;
+    db.delete.mockReturnValue({
+      where: (predicate: unknown) => {
+        cleanupPredicate = predicate;
+        return Promise.resolve();
+      },
+    });
+
+    await service.cleanupExpiredSessions();
+    await service.cleanupExpiredSessions();
+
+    expect(db.delete).toHaveBeenCalledTimes(2);
+    expect([...collectColumnNames(cleanupPredicate)]).toEqual(
+      expect.arrayContaining(['expires_at', 'revoked_at']),
+    );
   });
 
   it('does not serialize unexpected security metadata', () => {
