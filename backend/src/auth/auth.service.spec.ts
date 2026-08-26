@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -13,9 +18,9 @@ describe('AuthService', () => {
   const passwordService = { hash: jest.fn(), verify: jest.fn() } as any;
   const service = new AuthService(db, jwtService, passwordService);
 
-beforeEach(() => {
-  jest.clearAllMocks();
-});
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   function selectResult(result: unknown) {
     return {
