@@ -10,6 +10,21 @@ const API_BASE_URL = getApiBaseUrl();
 const REFRESH_PATH = "/auth/refresh";
 
 let refreshPromise: Promise<string> | null = null;
+const sessionExpiredListeners = new Set<() => void>();
+
+export function registerSessionExpiredListener(listener: () => void): () => void {
+  sessionExpiredListeners.add(listener);
+
+  return () => {
+    sessionExpiredListeners.delete(listener);
+  };
+}
+
+function notifySessionExpired(): void {
+  for (const listener of sessionExpiredListeners) {
+    listener();
+  }
+}
 
 export class ApiError extends Error {
   details: unknown;
@@ -28,12 +43,7 @@ export async function apiRequest<T>(
   const response = await request(path, init);
 
   if (response.status === 401 && path !== REFRESH_PATH && getAccessToken()) {
-    try {
-      await refreshAccessToken();
-    } catch (error) {
-      clearAccessToken();
-      throw error;
-    }
+    await refreshAccessToken();
 
     return parseResponse<T>(await request(path, init));
   }
@@ -66,9 +76,15 @@ async function request(
 
 async function refreshAccessToken(): Promise<string> {
   if (!refreshPromise) {
-    refreshPromise = performRefresh().finally(() => {
-      refreshPromise = null;
-    });
+    refreshPromise = performRefresh()
+      .catch((error: unknown) => {
+        clearAccessToken();
+        notifySessionExpired();
+        throw error;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
   }
 
   return refreshPromise;

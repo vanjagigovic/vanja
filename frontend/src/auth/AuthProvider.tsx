@@ -10,6 +10,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 
 import { authApi } from "../api/auth-api";
+import { registerSessionExpiredListener } from "../api/api-client";
 import {
   clearAccessToken,
   setAccessToken,
@@ -57,7 +58,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("unauthenticated");
   }, []);
 
+  const handleSessionExpired = useCallback(() => {
+    clearSession();
+    void queryClient.removeQueries({ queryKey: ["calendar-events"] });
+  }, [clearSession, queryClient]);
+
   useEffect(() => {
+    const unregisterSessionExpiredListener = registerSessionExpiredListener(
+      handleSessionExpired,
+    );
     let cancelled = false;
 
     void restoreSession()
@@ -74,8 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      unregisterSessionExpiredListener();
     };
-  }, [applySession, clearSession]);
+  }, [applySession, clearSession, handleSessionExpired]);
 
   const login = useCallback(
     async (credentials: AuthCredentials) => {
