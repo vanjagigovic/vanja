@@ -3,6 +3,10 @@ export type AuthUser = {
   email: string;
 };
 
+export type AuthenticatedUser = {
+  id: string;
+};
+
 export type JwtPayload = {
   sub: string;
 };
