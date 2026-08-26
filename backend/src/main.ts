@@ -2,6 +2,7 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { env } from './config/env';
@@ -11,7 +12,10 @@ async function startApp() {
 
   app.enableCors({
     origin: env.FRONTEND_URL,
+    credentials: true,
   });
+
+  app.use(cookieParser());
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
