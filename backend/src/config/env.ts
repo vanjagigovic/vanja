@@ -36,6 +36,17 @@ const envSchema = z
   })
   .superRefine((config, context) => {
     if (config.NODE_ENV !== 'production') {
+      if (
+        config.AUTH_COOKIE_SAME_SITE === 'none' &&
+        !config.AUTH_COOKIE_SECURE
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['AUTH_COOKIE_SECURE'],
+          message: 'AUTH_COOKIE_SECURE must be true when SameSite=None is used',
+        });
+      }
+
       return;
     }
 
@@ -60,21 +71,41 @@ const envSchema = z
           'JWT_ACCESS_SECRET must not contain a predictable placeholder in production',
       });
     }
+
+    if (!config.AUTH_COOKIE_SECURE) {
+      context.addIssue({
+        code: 'custom',
+        path: ['AUTH_COOKIE_SECURE'],
+        message: 'AUTH_COOKIE_SECURE must be true in production',
+      });
+    }
+
+    if (config.AUTH_COOKIE_SAME_SITE === 'none' && !config.AUTH_COOKIE_SECURE) {
+      context.addIssue({
+        code: 'custom',
+        path: ['AUTH_COOKIE_SECURE'],
+        message: 'AUTH_COOKIE_SECURE must be true when SameSite=None is used',
+      });
+    }
   });
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-export const env = envSchema.parse({
-  NODE_ENV: process.env.NODE_ENV,
-  TRUST_PROXY: process.env.TRUST_PROXY,
-  DATABASE_URL: process.env.DATABASE_URL!,
-  PORT: process.env.PORT,
-  FRONTEND_URL: process.env.FRONTEND_URL,
-  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
-  JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS:
-    process.env.JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS,
-  JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS:
-    process.env.JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
-  REFRESH_TOKEN_COOKIE_NAME: process.env.REFRESH_TOKEN_COOKIE_NAME,
-  AUTH_COOKIE_SECURE: process.env.AUTH_COOKIE_SECURE,
-  AUTH_COOKIE_SAME_SITE: process.env.AUTH_COOKIE_SAME_SITE,
-});
+export const parseEnv = (source: NodeJS.ProcessEnv) =>
+  envSchema.parse({
+    NODE_ENV: source.NODE_ENV,
+    TRUST_PROXY: source.TRUST_PROXY,
+    DATABASE_URL: source.DATABASE_URL,
+    PORT: source.PORT,
+    FRONTEND_URL: source.FRONTEND_URL,
+    JWT_ACCESS_SECRET: source.JWT_ACCESS_SECRET,
+    JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS:
+      source.JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+    JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS:
+      source.JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
+    REFRESH_TOKEN_COOKIE_NAME: source.REFRESH_TOKEN_COOKIE_NAME,
+    AUTH_COOKIE_SECURE:
+      source.AUTH_COOKIE_SECURE ??
+      (source.NODE_ENV === 'production' ? 'true' : undefined),
+    AUTH_COOKIE_SAME_SITE: source.AUTH_COOKIE_SAME_SITE,
+  });
+
+export const env = parseEnv(process.env);
