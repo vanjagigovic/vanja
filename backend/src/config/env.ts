@@ -1,6 +1,20 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+export type AppEnv = {
+  NODE_ENV: 'development' | 'test' | 'production';
+  TRUST_PROXY: boolean;
+  DATABASE_URL: string;
+  PORT: number;
+  FRONTEND_URL: string;
+  JWT_ACCESS_SECRET: string;
+  JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS: number;
+  JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS: number;
+  REFRESH_TOKEN_COOKIE_NAME: string;
+  AUTH_COOKIE_SECURE: boolean;
+  AUTH_COOKIE_SAME_SITE: 'strict' | 'lax' | 'none';
+};
+
 const envSchema = z
   .object({
     NODE_ENV: z
@@ -105,4 +119,4 @@ export const parseEnv = (source: NodeJS.ProcessEnv) =>
     AUTH_COOKIE_SAME_SITE: source.AUTH_COOKIE_SAME_SITE,
   });
 
-export const env = parseEnv(process.env);
+export const env: AppEnv = parseEnv(process.env);
