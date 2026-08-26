@@ -2,6 +2,8 @@ import { Calendar } from "./components/Calendar";
 import { formatDateKey } from "./utils/calendar-utils";
 import { Route, Routes, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
 
 function CalendarRedirect() {
   return (
@@ -12,8 +14,8 @@ function CalendarRedirect() {
 export function App() {
   return (
     <Routes>
-      <Route path="/login" element={null} />
-      <Route path="/register" element={null} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<CalendarRedirect />} />
         <Route path="/calendar/:view/:date" element={<Calendar />} />
