@@ -8,6 +8,23 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(3001),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+  JWT_ACCESS_SECRET: z.string().min(32),
+  JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(900),
+  JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(2592000),
+  REFRESH_TOKEN_COOKIE_NAME: z.string().min(1).default('refresh_token'),
+  AUTH_COOKIE_SECURE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  AUTH_COOKIE_SAME_SITE: z.enum(['strict', 'lax', 'none']).default('lax'),
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -15,4 +32,12 @@ export const env = envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL!,
   PORT: process.env.PORT,
   FRONTEND_URL: process.env.FRONTEND_URL,
+  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+  JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS:
+    process.env.JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+  JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS:
+    process.env.JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
+  REFRESH_TOKEN_COOKIE_NAME: process.env.REFRESH_TOKEN_COOKIE_NAME,
+  AUTH_COOKIE_SECURE: process.env.AUTH_COOKIE_SECURE,
+  AUTH_COOKIE_SAME_SITE: process.env.AUTH_COOKIE_SAME_SITE,
 });
