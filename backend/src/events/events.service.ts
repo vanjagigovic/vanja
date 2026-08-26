@@ -12,6 +12,10 @@ import { EventRecord, eventsTable } from '../db/schema';
 import { CreateEventDto } from './dto/create-event-dto';
 import { ListEventDto } from './dto/list-event-dto';
 import { UpdateEventDto } from './dto/update-event-dto';
+import {
+  EventOccurrenceResponseDto,
+  EventResponseDto,
+} from './dto/event-response-dto';
 
 type MutableEventShape = {
   id: string;
@@ -45,7 +49,9 @@ export class EventsService {
         .from(eventsTable)
         .orderBy(asc(eventsTable.startUtc));
 
-      return events.map((event) => this.toSingleOccurrence(event));
+      return events.map((event) =>
+        this.toOccurrenceResponse(this.toSingleOccurrence(event)),
+      );
     }
 
     if (!query.rangeStartUtc || !query.rangeEndUtc) {
@@ -66,7 +72,7 @@ export class EventsService {
         event,
         query.rangeStartUtc as string,
         query.rangeEndUtc as string,
-      ),
+      ).map((occurrence) => this.toOccurrenceResponse(occurrence)),
     );
   }
 
@@ -81,7 +87,7 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    return event;
+    return this.toEventResponse(event);
   }
 
   async create(createEventDto: CreateEventDto) {
@@ -117,7 +123,7 @@ export class EventsService {
       })
       .returning();
 
-    return created;
+    return this.toEventResponse(created);
   }
 
   async update(id: string, updateEventDto: UpdateEventDto) {
@@ -126,15 +132,13 @@ export class EventsService {
     const candidate = this.normalizeCandidate({
       id,
       title: updateEventDto.title ?? current.title,
-      startUtc: updateEventDto.startUtc ?? current.startUtc.toISOString(),
-      endUtc: updateEventDto.endUtc ?? current.endUtc.toISOString(),
+      startUtc: updateEventDto.startUtc ?? current.startUtc,
+      endUtc: updateEventDto.endUtc ?? current.endUtc,
       timeZone: updateEventDto.timeZone ?? current.timeZone,
       eventType: updateEventDto.eventType ?? current.eventType,
       repeatWeekly: updateEventDto.repeatWeekly ?? current.repeatWeekly,
       repeatUntilUtc:
-        updateEventDto.repeatUntilUtc ??
-        current.repeatUntilUtc?.toISOString() ??
-        null,
+        updateEventDto.repeatUntilUtc ?? current.repeatUntilUtc ?? null,
       reminderEnabled:
         updateEventDto.reminderEnabled ?? current.reminderEnabled,
     });
@@ -159,7 +163,7 @@ export class EventsService {
       .where(eq(eventsTable.id, id))
       .returning();
 
-    return updated;
+    return updated ? this.toEventResponse(updated) : undefined;
   }
 
   async remove(id: string) {
@@ -552,6 +556,30 @@ export class EventsService {
         zone: 'utc',
       }),
     );
+  }
+
+  private toEventResponse(event: EventRecord): EventResponseDto {
+    return {
+      id: event.id,
+      title: event.title,
+      startUtc: event.startUtc.toISOString(),
+      endUtc: event.endUtc.toISOString(),
+      timeZone: event.timeZone,
+      eventType: event.eventType as EventResponseDto['eventType'],
+      repeatWeekly: event.repeatWeekly,
+      repeatUntilUtc: event.repeatUntilUtc?.toISOString() ?? null,
+      reminderEnabled: event.reminderEnabled,
+    };
+  }
+
+  private toOccurrenceResponse(
+    occurrence: EventOccurrence,
+  ): EventOccurrenceResponseDto {
+    return {
+      ...occurrence,
+      eventType: occurrence.eventType as EventResponseDto['eventType'],
+      repeatUntilUtc: occurrence.repeatUntilUtc ?? null,
+    };
   }
 
   private mapRecordToShape(event: EventRecord): MutableEventShape {
