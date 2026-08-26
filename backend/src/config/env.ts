@@ -9,6 +9,10 @@ const envSchema = z
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
       .default('development'),
+    TRUST_PROXY: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
     DATABASE_URL: z.string().min(1),
     PORT: z.coerce.number().int().positive().default(3001),
     FRONTEND_URL: z.string().url().default('http://localhost:5173'),
@@ -61,6 +65,7 @@ const envSchema = z
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 export const env = envSchema.parse({
   NODE_ENV: process.env.NODE_ENV,
+  TRUST_PROXY: process.env.TRUST_PROXY,
   DATABASE_URL: process.env.DATABASE_URL!,
   PORT: process.env.PORT,
   FRONTEND_URL: process.env.FRONTEND_URL,

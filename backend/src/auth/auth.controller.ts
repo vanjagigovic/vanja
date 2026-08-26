@@ -1,4 +1,5 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { env } from '../config/env';
 import { AuthService } from './auth.service';
@@ -10,6 +11,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   async register(
     @Body() dto: RegisterAuthDto,
     @Res({ passthrough: true }) response: Response,
@@ -20,6 +23,8 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async login(
     @Body() dto: LoginAuthDto,
     @Res({ passthrough: true }) response: Response,
@@ -30,6 +35,8 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
