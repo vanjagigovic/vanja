@@ -3,7 +3,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
@@ -17,6 +21,7 @@ describe('AuthService', () => {
   const jwtService = { signAsync: jest.fn() } as any;
   const passwordService = { hash: jest.fn(), verify: jest.fn() } as any;
   const service = new AuthService(db, jwtService, passwordService);
+  const loggerSpy = jest.spyOn(Logger.prototype, 'log');
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -50,6 +55,15 @@ describe('AuthService', () => {
     expect(db.insert).toHaveBeenCalledTimes(2);
     const valuesMock = db.insert.mock.results[1].value.values;
     expect(valuesMock.mock.calls[1][0].tokenHash).not.toBe(result.refreshToken);
+
+    const logPayload = JSON.parse(loggerSpy.mock.calls.at(-1)?.[0] as string);
+    expect(logPayload).toMatchObject({
+      eventType: 'registration',
+      outcome: 'succeeded',
+      userId: 'user-id',
+    });
+    expect(JSON.stringify(logPayload)).not.toContain('password');
+    expect(JSON.stringify(logPayload)).not.toContain('token');
   });
 
   it('rejects duplicate registration', async () => {
@@ -83,6 +97,19 @@ describe('AuthService', () => {
     expect(result.accessToken).toBe('access-token');
     expect(result.refreshToken).toBeTruthy();
     expect(db.insert).toHaveBeenCalledTimes(1);
+
+    const logPayload = JSON.parse(loggerSpy.mock.calls[0][0] as string);
+    expect(Object.keys(logPayload).sort()).toEqual([
+      'eventType',
+      'outcome',
+      'timestamp',
+      'userId',
+    ]);
+    expect(logPayload).toMatchObject({
+      eventType: 'login',
+      outcome: 'succeeded',
+      userId: 'user-id',
+    });
   });
 
   it('rejects an invalid password without revealing account details', async () => {
@@ -100,6 +127,21 @@ describe('AuthService', () => {
     await expect(
       service.login({ email: 'user@example.com', password: 'wrong-password' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    const logPayload = JSON.parse(loggerSpy.mock.calls[0][0] as string);
+    expect(logPayload).toMatchObject({
+      eventType: 'login',
+      outcome: 'rejected',
+      reason: 'invalid_credentials',
+    });
+    expect(JSON.stringify(logPayload)).not.toContain('wrong-password');
+    expect(JSON.stringify(logPayload)).not.toContain('passwordHash');
+    expect(Object.keys(logPayload).sort()).toEqual([
+      'eventType',
+      'outcome',
+      'reason',
+      'timestamp',
+    ]);
   });
 
   it('rotates a valid refresh token and rejects the old token later', async () => {
@@ -135,13 +177,79 @@ describe('AuthService', () => {
     await expect(service.refresh('old-refresh-token')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+
+    const logPayload = JSON.parse(loggerSpy.mock.calls.at(-1)?.[0] as string);
+    expect(logPayload).toMatchObject({
+      eventType: 'refresh',
+      outcome: 'rejected',
+      reason: 'revoked_refresh_token',
+      userId: 'user-id',
+    });
+    expect(JSON.stringify(logPayload)).not.toContain('old-refresh-token');
+    expect(Object.keys(logPayload).sort()).toEqual([
+      'eventType',
+      'outcome',
+      'reason',
+      'timestamp',
+      'userId',
+    ]);
   });
 
   it('revokes an active session during logout', async () => {
-    db.update.mockReturnValue({ set: () => ({ where: jest.fn() }) });
+    db.update.mockReturnValue({
+      set: () => ({
+        where: () => ({
+          returning: () =>
+            Promise.resolve([{ id: 'session-id', userId: 'user-id' }]),
+        }),
+      }),
+    });
 
     await expect(service.logout('refresh-token')).resolves.toBeUndefined();
 
     expect(db.update).toHaveBeenCalled();
+
+    const logPayload = JSON.parse(loggerSpy.mock.calls[0][0] as string);
+    expect(logPayload).toMatchObject({
+      eventType: 'logout',
+      outcome: 'completed',
+      reason: 'session_revoked',
+      userId: 'user-id',
+    });
+    expect(Object.keys(logPayload).sort()).toEqual([
+      'eventType',
+      'outcome',
+      'reason',
+      'timestamp',
+      'userId',
+    ]);
+  });
+
+  it('does not serialize unexpected security metadata', () => {
+    const logSecurityEvent = (
+      service as unknown as {
+        logSecurityEvent: (
+          eventType: string,
+          outcome: string,
+          metadata: Record<string, string>,
+        ) => void;
+      }
+    ).logSecurityEvent;
+
+    logSecurityEvent.call(service, 'login', 'rejected', {
+      reason: 'invalid_credentials',
+      userId: 'user-id',
+      password: 'must-not-be-logged',
+    });
+
+    const logPayload = JSON.parse(loggerSpy.mock.calls[0][0] as string);
+    expect(Object.keys(logPayload).sort()).toEqual([
+      'eventType',
+      'outcome',
+      'reason',
+      'timestamp',
+      'userId',
+    ]);
+    expect(JSON.stringify(logPayload)).not.toContain('must-not-be-logged');
   });
 });

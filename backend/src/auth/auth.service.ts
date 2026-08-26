@@ -2,6 +2,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -16,8 +17,30 @@ import { RegisterAuthDto } from './dto/register-auth-dto';
 import { AuthSession, AuthUser } from './auth.types';
 import { PasswordService } from './password.service';
 
+type SecurityEventType = 'registration' | 'login' | 'refresh' | 'logout';
+type SecurityEventOutcome = 'succeeded' | 'rejected' | 'completed';
+type SecurityEventReason =
+  | 'duplicate_email'
+  | 'invalid_credentials'
+  | 'missing_refresh_token'
+  | 'unknown_refresh_token'
+  | 'revoked_refresh_token'
+  | 'expired_refresh_token'
+  | 'missing_session_user'
+  | 'refresh_token_reuse'
+  | 'no_refresh_token'
+  | 'session_revoked'
+  | 'no_active_session';
+
+type SecurityEventMetadata = {
+  reason?: SecurityEventReason;
+  userId?: string;
+};
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: NodePgDatabase,
@@ -34,6 +57,9 @@ export class AuthService {
       .limit(1);
 
     if (existingUser) {
+      this.logSecurityEvent('registration', 'rejected', {
+        reason: 'duplicate_email',
+      });
       throw new ConflictException('Email is already registered');
     }
 
@@ -43,7 +69,9 @@ export class AuthService {
       .values({ email, passwordHash })
       .returning({ id: usersTable.id, email: usersTable.email });
 
-    return this.createAuthSession(user);
+    const session = await this.createAuthSession(user);
+    this.logSecurityEvent('registration', 'succeeded', { userId: user.id });
+    return session;
   }
 
   async login(dto: LoginAuthDto): Promise<AuthSession> {
@@ -58,14 +86,25 @@ export class AuthService {
       !user ||
       !(await this.passwordService.verify(dto.password, user.passwordHash))
     ) {
+      this.logSecurityEvent('login', 'rejected', {
+        reason: 'invalid_credentials',
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.createAuthSession({ id: user.id, email: user.email });
+    const session = await this.createAuthSession({
+      id: user.id,
+      email: user.email,
+    });
+    this.logSecurityEvent('login', 'succeeded', { userId: user.id });
+    return session;
   }
 
   async refresh(refreshToken: string | undefined): Promise<AuthSession> {
     if (!refreshToken) {
+      this.logSecurityEvent('refresh', 'rejected', {
+        reason: 'missing_refresh_token',
+      });
       throw new UnauthorizedException('Refresh token is required');
     }
 
@@ -77,10 +116,25 @@ export class AuthService {
       .limit(1);
 
     if (!session) {
+      this.logSecurityEvent('refresh', 'rejected', {
+        reason: 'unknown_refresh_token',
+      });
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    if (session.revokedAt || session.expiresAt <= new Date()) {
+    if (session.revokedAt) {
+      this.logSecurityEvent('refresh', 'rejected', {
+        reason: 'revoked_refresh_token',
+        userId: session.userId,
+      });
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (session.expiresAt <= new Date()) {
+      this.logSecurityEvent('refresh', 'rejected', {
+        reason: 'expired_refresh_token',
+        userId: session.userId,
+      });
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -91,6 +145,10 @@ export class AuthService {
       .limit(1);
 
     if (!user) {
+      this.logSecurityEvent('refresh', 'rejected', {
+        reason: 'missing_session_user',
+        userId: session.userId,
+      });
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -103,18 +161,27 @@ export class AuthService {
       .returning({ id: sessionsTable.id });
 
     if (!revokedSession) {
+      this.logSecurityEvent('refresh', 'rejected', {
+        reason: 'refresh_token_reuse',
+        userId: session.userId,
+      });
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    return this.createAuthSession(user);
+    const nextSession = await this.createAuthSession(user);
+    this.logSecurityEvent('refresh', 'succeeded', { userId: user.id });
+    return nextSession;
   }
 
   async logout(refreshToken: string | undefined): Promise<void> {
     if (!refreshToken) {
+      this.logSecurityEvent('logout', 'completed', {
+        reason: 'no_refresh_token',
+      });
       return;
     }
 
-    await this.db
+    const [revokedSession] = await this.db
       .update(sessionsTable)
       .set({ revokedAt: new Date(), lastUsedAt: new Date() })
       .where(
@@ -122,7 +189,13 @@ export class AuthService {
           eq(sessionsTable.tokenHash, this.hashRefreshToken(refreshToken)),
           isNull(sessionsTable.revokedAt),
         ),
-      );
+      )
+      .returning({ id: sessionsTable.id, userId: sessionsTable.userId });
+
+    this.logSecurityEvent('logout', 'completed', {
+      reason: revokedSession ? 'session_revoked' : 'no_active_session',
+      userId: revokedSession?.userId,
+    });
   }
 
   async cleanupExpiredSessions(): Promise<void> {
@@ -153,5 +226,21 @@ export class AuthService {
 
   private hashRefreshToken(refreshToken: string): string {
     return createHash('sha256').update(refreshToken).digest('hex');
+  }
+
+  private logSecurityEvent(
+    eventType: SecurityEventType,
+    outcome: SecurityEventOutcome,
+    metadata: SecurityEventMetadata = {},
+  ): void {
+    const payload = {
+      eventType,
+      timestamp: new Date().toISOString(),
+      outcome,
+      ...(metadata.reason !== undefined ? { reason: metadata.reason } : {}),
+      ...(metadata.userId !== undefined ? { userId: metadata.userId } : {}),
+    };
+
+    this.logger.log(JSON.stringify(payload));
   }
 }
