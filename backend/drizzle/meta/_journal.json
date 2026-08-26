@@ -29,6 +29,20 @@
       "when": 1775260947992,
       "tag": "0003_secret_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787748459084,
+      "tag": "0004_massive_bloodaxe",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787750208155,
+      "tag": "0005_bumpy_celestials",
+      "breakpoints": true
     }
   ]
 }

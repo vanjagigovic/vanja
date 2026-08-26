@@ -39,6 +39,7 @@ import {
   calendarViewButtonSx,
   calendarViewSwitcherSx,
 } from "../styles/calendarStyles";
+import { UserAccountMenu } from "./UserAccountMenu";
 
 type UpcomongEventItem = {
   id: string;
@@ -94,34 +95,35 @@ export function CalendarControls({
     <Card sx={calendarSurfaceCardSx}>
       <CardContent sx={calendarControlsContentSx}>
         <Box sx={calendarTopActionBarSx}>
-          {showUpcomingEvents ? (
-            <Box sx={calendarUpcomingPanelSx}>
-              <Typography sx={calendarUpcomingTitleSx}>
-                {upcomingEventsLabel}
-              </Typography>
-
-              {upcomingEvents.length > 0 ? (
-                <Box sx={calendarUpcomingListSx}>
-                  {upcomingEvents.map((event) => (
-                    <Box key={event.id} sx={calendarUpcomingItemSx}>
-                      <Typography sx={calendarUpcomingTimeSx}>
-                        {event.timeLabel}
-                      </Typography>
-                      <Typography variant="body2" noWrap sx={{ flex: 1 }}>
-                        {event.title}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              ) : (
-                <Typography sx={calendarUpcomingEmptySx}>
-                  {noUpcomingEventsLabel}
+          <Box>
+            <UserAccountMenu />
+            {showUpcomingEvents ? (
+              <Box sx={calendarUpcomingPanelSx}>
+                <Typography sx={calendarUpcomingTitleSx}>
+                  {upcomingEventsLabel}
                 </Typography>
-              )}
-            </Box>
-          ) : (
-            <Box />
-          )}
+
+                {upcomingEvents.length > 0 ? (
+                  <Box sx={calendarUpcomingListSx}>
+                    {upcomingEvents.map((event) => (
+                      <Box key={event.id} sx={calendarUpcomingItemSx}>
+                        <Typography sx={calendarUpcomingTimeSx}>
+                          {event.timeLabel}
+                        </Typography>
+                        <Typography variant="body2" noWrap sx={{ flex: 1 }}>
+                          {event.title}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography sx={calendarUpcomingEmptySx}>
+                    {noUpcomingEventsLabel}
+                  </Typography>
+                )}
+              </Box>
+            ) : null}
+          </Box>
           <Box sx={calendarHeroSectionSx}>
             <Typography component="h1" sx={calendarHeroTitleSx}>
               {rangeLabel}
@@ -185,6 +187,7 @@ export function CalendarControls({
             >
               {newEventLabel}
             </Button>
+
           </Box>
         </Box>
 
