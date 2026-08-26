@@ -1,5 +1,5 @@
 
-import type { EventResponseDto, CreateEventRequest, UpdateEventRequest } from "../types/event-api-types";
+import type { EventOccurrenceResponseDto, EventResponseDto, CreateEventRequest, UpdateEventRequest } from "../types/event-api-types";
 import type { CalendarEvent, EventPayload } from "../types/types";
 
 export function mapEventResponseToCalendarEvent(
@@ -14,17 +14,28 @@ export function mapEventResponseToCalendarEvent(
     eventType: dto.eventType,
     repeatWeekly: dto.repeatWeekly,
     repeatUntilUtc: dto.repeatUntilUtc,
-    reminderEnabled: dto.reminderEnable,
+    reminderEnabled: dto.reminderEnabled,
+    occurrenceId: dto.id,
+    baseEventId: dto.id,
+    reminderAtUtc: null,
+  };
+}
+
+export function mapEventOccurrenceResponseToCalendarEvent(
+  dto: EventOccurrenceResponseDto,
+): CalendarEvent {
+  return {
+    ...mapEventResponseToCalendarEvent(dto),
     occurrenceId: dto.occurrenceId,
     baseEventId: dto.baseEventId,
-    reminderAtUtc: dto.reminderAtUct,
+    reminderAtUtc: dto.reminderAtUtc,
   };
 }
 
 export function mapEventResponsesToCalendarEvents(
-  dtos: EventResponseDto[],
+  dtos: EventOccurrenceResponseDto[],
 ): CalendarEvent[] {
-  return dtos.map(mapEventResponseToCalendarEvent);
+  return dtos.map(mapEventOccurrenceResponseToCalendarEvent);
 }
 
 export function mapEventPayloadToCreateEventRequest(

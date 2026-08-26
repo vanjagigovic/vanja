@@ -1,5 +1,5 @@
 import { apiRequest } from "./api-client";
-import type { DeleteEventRequest, EventResponseDto } from "../types/event-api-types";
+import type { DeleteEventRequest, EventOccurrenceResponseDto, EventResponseDto } from "../types/event-api-types";
 import { buildEventDetailPath, buildEventsListPath, getEventsBasePath } from "../helpers/event-api-paths";
 
 import { mapEventPayloadToCreateEventRequest, mapEventPayloadToUpdateEventRequest, mapEventResponseToCalendarEvent, mapEventResponsesToCalendarEvents } from "../helpers/event-api-mappers";
@@ -13,7 +13,7 @@ type ListEventsParams = {
 
 export const eventsApi = { 
     list: async (params: ListEventsParams = {}) : Promise<CalendarEvent[]> => {
-        const response = await apiRequest<EventResponseDto[]>(buildEventsListPath(params));
+        const response = await apiRequest<EventOccurrenceResponseDto[]>(buildEventsListPath(params));
         return mapEventResponsesToCalendarEvents(response);
     },
     create: async (payload: EventPayload): Promise<CalendarEvent> => {

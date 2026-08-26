@@ -7,10 +7,12 @@ import { z } from 'zod';
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(3001),
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 export const env = envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL!,
   PORT: process.env.PORT,
+  FRONTEND_URL: process.env.FRONTEND_URL,
 });

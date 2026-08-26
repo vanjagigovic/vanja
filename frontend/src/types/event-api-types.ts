@@ -17,10 +17,13 @@ export interface EventResponseDto {
   eventType: EventApiType;
   repeatWeekly: boolean;
   repeatUntilUtc?: string | null;
-  reminderEnable: boolean;
+  reminderEnabled: boolean;
+}
+
+export interface EventOccurrenceResponseDto extends EventResponseDto {
   occurrenceId: string;
   baseEventId: string;
-  reminderAtUct: string | null;
+  reminderAtUtc: string | null;
 }
 
 export interface CreateEventRequest {
