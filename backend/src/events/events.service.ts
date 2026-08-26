@@ -42,11 +42,12 @@ export class EventsService {
     private readonly db: NodePgDatabase,
   ) {}
 
-  async findAll(query: ListEventDto = {}) {
+  async findAll(userId: string, query: ListEventDto = {}) {
     if (!query.rangeStartUtc && !query.rangeEndUtc) {
       const events = await this.db
         .select()
         .from(eventsTable)
+        .where(eq(eventsTable.userId, userId))
         .orderBy(asc(eventsTable.startUtc));
 
       return events.map((event) =>
@@ -63,6 +64,7 @@ export class EventsService {
     this.validateDateRange(query.rangeStartUtc, query.rangeEndUtc);
 
     const events = await this.getEventsForRange(
+      userId,
       query.rangeStartUtc,
       query.rangeEndUtc,
     );
@@ -76,11 +78,11 @@ export class EventsService {
     );
   }
 
-  async findOne(id: string) {
+  async findOne(userId: string, id: string) {
     const [event] = await this.db
       .select()
       .from(eventsTable)
-      .where(eq(eventsTable.id, id))
+      .where(and(eq(eventsTable.id, id), eq(eventsTable.userId, userId)))
       .limit(1);
 
     if (!event) {
@@ -90,7 +92,7 @@ export class EventsService {
     return this.toEventResponse(event);
   }
 
-  async create(createEventDto: CreateEventDto) {
+  async create(userId: string, createEventDto: CreateEventDto) {
     const candidate = this.normalizeCandidate({
       id: 'draft',
       title: createEventDto.title,
@@ -105,11 +107,12 @@ export class EventsService {
 
     this.validateNotInPast(candidate.startUtc);
 
-    await this.ensureNoOverlap(candidate);
+    await this.ensureNoOverlap(userId, candidate);
 
     const [created] = await this.db
       .insert(eventsTable)
       .values({
+        userId,
         title: candidate.title,
         startUtc: new Date(candidate.startUtc),
         endUtc: new Date(candidate.endUtc),
@@ -126,8 +129,8 @@ export class EventsService {
     return this.toEventResponse(created);
   }
 
-  async update(id: string, updateEventDto: UpdateEventDto) {
-    const current = await this.findOne(id);
+  async update(userId: string, id: string, updateEventDto: UpdateEventDto) {
+    const current = await this.findOne(userId, id);
 
     const candidate = this.normalizeCandidate({
       id,
@@ -143,7 +146,7 @@ export class EventsService {
         updateEventDto.reminderEnabled ?? current.reminderEnabled,
     });
 
-    await this.ensureNoOverlap(candidate, id);
+    await this.ensureNoOverlap(userId, candidate, id);
 
     const [updated] = await this.db
       .update(eventsTable)
@@ -160,16 +163,18 @@ export class EventsService {
         reminderEnabled: candidate.reminderEnabled,
         updatedAt: new Date(),
       })
-      .where(eq(eventsTable.id, id))
+      .where(and(eq(eventsTable.id, id), eq(eventsTable.userId, userId)))
       .returning();
 
     return updated ? this.toEventResponse(updated) : undefined;
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(userId: string, id: string) {
+    await this.findOne(userId, id);
 
-    await this.db.delete(eventsTable).where(eq(eventsTable.id, id));
+    await this.db
+      .delete(eventsTable)
+      .where(and(eq(eventsTable.id, id), eq(eventsTable.userId, userId)));
 
     return { success: true };
   }
@@ -230,12 +235,14 @@ export class EventsService {
   }
 
   private async ensureNoOverlap(
+    userId: string,
     candidate: MutableEventShape,
     excludedId?: string,
   ) {
     const comparisonBounds = this.getComparisonBounds(candidate);
 
     const events = await this.getEventsForRange(
+      userId,
       comparisonBounds.startUtc,
       comparisonBounds.endUtc,
       excludedId,
@@ -262,6 +269,7 @@ export class EventsService {
   }
 
   private async getEventsForRange(
+    userId: string,
     rangeStartUtc: string,
     rangeEndUtc: string,
     excludedId?: string,
@@ -272,6 +280,7 @@ export class EventsService {
     const rangeStartDateTime = DateTime.fromJSDate(rangeStart, { zone: 'utc' });
 
     const predicates = [
+      eq(eventsTable.userId, userId),
       or(
         and(
           eq(eventsTable.repeatWeekly, false),
