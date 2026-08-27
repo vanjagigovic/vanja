@@ -7,7 +7,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "npm --prefix frontend run dev",
-    "dev:backend": "npm --prefix backend run start:dev"
+    "dev:backend": "npm --prefix backend run start:dev",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "frontend/**/*.{ts,tsx}": "frontend/node_modules/.bin/eslint.cmd --config frontend/eslint.config.js",
+    "backend/**/*.{ts,tsx}": "backend/node_modules/.bin/eslint.cmd --config backend/eslint.config.mjs"
   },
   "repository": {
     "type": "git",
@@ -23,7 +28,9 @@
   "homepage": "https://github.com/vanjagigovic/vanja#readme",
   "devDependencies": {
     "@types/react-router-dom": "^5.3.3",
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.4.1"
   },
   "dependencies": {
     "cors": "^2.8.6",
