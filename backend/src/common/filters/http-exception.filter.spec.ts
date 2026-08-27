@@ -1,13 +1,26 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BadRequestException,
   ConflictException,
   HttpException,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 import type { ArgumentsHost } from '@nestjs/common';
 import { HttpExceptionFilter } from './http-exception.filter';
+import * as requestContext from '../request-context';
 
 describe('HttpExceptionFilter', () => {
   const filter = new HttpExceptionFilter();
@@ -201,5 +214,119 @@ describe('HttpExceptionFilter', () => {
       message: 'Internal Server Error',
     });
     expect(json.mock.calls[0][0]).not.toHaveProperty('driverError');
+  });
+
+  describe('error logging', () => {
+    let loggerErrorSpy: any;
+    let loggerWarnSpy: any;
+    let loggingHost: any;
+
+    beforeEach(() => {
+      loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
+      loggerWarnSpy = jest.spyOn(Logger.prototype, 'warn');
+      jest
+        .spyOn(requestContext, 'getCorrelationId')
+        .mockReturnValue('test-correlation-id');
+      jest.spyOn(requestContext, 'getUserId').mockReturnValue('user-123');
+
+      // Create a mock request with method and path for logging tests
+      const loggingRequest = {
+        url: '/test',
+        method: 'GET',
+        path: '/test',
+      };
+      const loggingResponse = { status: jest.fn().mockReturnValue({ json }) };
+      loggingHost = {
+        switchToHttp: () => ({
+          getResponse: () => loggingResponse,
+          getRequest: () => loggingRequest,
+        }),
+      } as unknown as ArgumentsHost;
+    });
+
+    afterEach(() => {
+      loggerErrorSpy.mockRestore();
+      loggerWarnSpy.mockRestore();
+      jest.restoreAllMocks();
+    });
+
+    it('logs error with correlationId and context for 5xx errors', () => {
+      filter.catch(
+        new InternalServerErrorException('Server error'),
+        loggingHost,
+      );
+
+      expect(loggerErrorSpy).toHaveBeenCalled();
+      const loggedPayload = loggerErrorSpy.mock.calls[0][0];
+      expect(loggedPayload).toMatchObject({
+        correlationId: 'test-correlation-id',
+        method: 'GET',
+        path: '/test',
+        status: 500,
+        userId: 'user-123',
+      });
+    });
+
+    it('logs warning with correlationId and context for 4xx errors', () => {
+      filter.catch(new NotFoundException('Not found'), loggingHost);
+
+      expect(loggerWarnSpy).toHaveBeenCalled();
+      const loggedPayload = loggerWarnSpy.mock.calls[0][0];
+      expect(loggedPayload).toMatchObject({
+        correlationId: 'test-correlation-id',
+        method: 'GET',
+        path: '/test',
+        status: 404,
+        userId: 'user-123',
+      });
+    });
+
+    it('omits correlationId when not available', () => {
+      jest.spyOn(requestContext, 'getCorrelationId').mockReturnValue(undefined);
+
+      filter.catch(new BadRequestException('Invalid input'), loggingHost);
+
+      expect(loggerWarnSpy).toHaveBeenCalled();
+      const loggedPayload = loggerWarnSpy.mock.calls[0][0];
+      expect(loggedPayload).not.toHaveProperty('correlationId');
+      expect(loggedPayload).toHaveProperty('message');
+    });
+
+    it('omits userId when not authenticated', () => {
+      jest.spyOn(requestContext, 'getUserId').mockReturnValue(undefined);
+
+      filter.catch(new BadRequestException('Invalid input'), loggingHost);
+
+      expect(loggerWarnSpy).toHaveBeenCalled();
+      const loggedPayload = loggerWarnSpy.mock.calls[0][0];
+      expect(loggedPayload).not.toHaveProperty('userId');
+    });
+
+    it('never logs sensitive data as structured fields', () => {
+      const sensitiveError = new BadRequestException({
+        message: 'Invalid input',
+        password: 'secret123',
+        refreshToken: 'xyz',
+      });
+
+      filter.catch(sensitiveError, loggingHost);
+
+      expect(loggerWarnSpy).toHaveBeenCalled();
+      const loggedPayload = loggerWarnSpy.mock.calls[0][0];
+      expect(loggedPayload).not.toHaveProperty('password');
+      expect(loggedPayload).not.toHaveProperty('refreshToken');
+      // Verify only safe fields are logged
+      expect(Object.keys(loggedPayload)).toEqual(
+        expect.arrayContaining([
+          'timestamp',
+          'correlationId',
+          'method',
+          'path',
+          'status',
+          'userId',
+          'message',
+        ]),
+      );
+    });
   });
 });

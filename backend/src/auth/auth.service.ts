@@ -20,6 +20,7 @@ import { LoginAuthDto } from './dto/login-auth-dto';
 import { RegisterAuthDto } from './dto/register-auth-dto';
 import { AuthSession, AuthUser } from './auth.types';
 import { PasswordService } from './password.service';
+import { getCorrelationId } from '../common/request-context';
 
 type SecurityEventType = 'registration' | 'login' | 'refresh' | 'logout';
 type SecurityEventOutcome = 'succeeded' | 'rejected' | 'completed';
@@ -204,14 +205,34 @@ export class AuthService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredSessions(): Promise<void> {
-    await this.db
-      .delete(sessionsTable)
-      .where(
-        or(
-          lte(sessionsTable.expiresAt, new Date()),
-          isNotNull(sessionsTable.revokedAt),
-        ),
+    try {
+      const result = await this.db
+        .delete(sessionsTable)
+        .where(
+          or(
+            lte(sessionsTable.expiresAt, new Date()),
+            isNotNull(sessionsTable.revokedAt),
+          ),
+        )
+        .returning({ id: sessionsTable.id });
+
+      this.logger.log(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          message: 'Session cleanup completed',
+          deletedCount: result.length,
+        }),
       );
+    } catch (error) {
+      this.logger.error(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          message: 'Session cleanup failed',
+          error:
+            error instanceof Error ? error.message : 'Unknown error occurred',
+        }),
+      );
+    }
   }
 
   private normalizeEmail(email: string): string {
@@ -243,7 +264,9 @@ export class AuthService {
     outcome: SecurityEventOutcome,
     metadata: SecurityEventMetadata = {},
   ): void {
+    const correlationId = getCorrelationId();
     const payload = {
+      ...(correlationId && { correlationId }),
       eventType,
       timestamp: new Date().toISOString(),
       outcome,
