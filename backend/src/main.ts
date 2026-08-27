@@ -1,8 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -14,29 +18,36 @@ async function startApp() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.set('trust proxy', env.TRUST_PROXY);
 
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        useDefaults: false,
-        directives: {
-          defaultSrc: ["'none'"],
-          baseUri: ["'none'"],
-          objectSrc: ["'none'"],
-          frameAncestors: ["'none'"],
-        },
+  const securityHeaders = helmet({
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'none'"],
+        baseUri: ["'none'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
       },
-      frameguard: { action: 'deny' },
-      referrerPolicy: { policy: 'no-referrer' },
-      strictTransportSecurity:
-        env.NODE_ENV === 'production'
-          ? {
-              maxAge: 31536000,
-              includeSubDomains: true,
-              preload: false,
-            }
-          : false,
-    }),
-  );
+    },
+    frameguard: { action: 'deny' },
+    referrerPolicy: { policy: 'no-referrer' },
+    strictTransportSecurity:
+      env.NODE_ENV === 'production'
+        ? {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: false,
+          }
+        : false,
+  });
+
+  app.use((request, response, next) => {
+    if (request.path.startsWith('/api/docs')) {
+      next();
+      return;
+    }
+
+    securityHeaders(request, response, next);
+  });
 
   app.enableCors({
     origin: env.FRONTEND_URL,
@@ -54,6 +65,33 @@ async function startApp() {
       transform: true,
     }),
   );
+
+  if (env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Calendar API')
+      .setDescription(
+        'Calendar scheduling API. Protected endpoints require a bearer access token.',
+      )
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Authorization: Bearer <access-token>',
+        },
+        'JWT-auth',
+      )
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      customSiteTitle: 'Calendar API Docs',
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    });
+  }
 
   await app.listen(process.env.PORT || 3001);
   console.info(`Backend is running on port ${process.env.PORT || 3001}`);

@@ -4,26 +4,74 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
-  ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
-import { EventsService } from './events.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateEventDto } from './dto/create-event-dto';
-import { UpdateEventDto } from './dto/update-event-dto';
 import { ListEventDto } from './dto/list-event-dto';
+import { UpdateEventDto } from './dto/update-event-dto';
+import {
+  EventOccurrenceResponseDto,
+  EventResponseDto,
+} from './dto/event-response-dto';
+import { EventsService } from './events.service';
 
+@ApiTags('Events')
 @Controller('events')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT-auth')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List calendar events',
+    description:
+      'Returns all events for the authenticated user, or a date-range subset for the requested window.',
+  })
+  @ApiQuery({
+    name: 'rangeStartUtc',
+    required: false,
+    type: String,
+    description: 'Inclusive range start in ISO 8601 UTC format.',
+  })
+  @ApiQuery({
+    name: 'rangeEndUtc',
+    required: false,
+    type: String,
+    description: 'Inclusive range end in ISO 8601 UTC format.',
+  })
+  @ApiQuery({
+    name: 'viewTimeZone',
+    required: false,
+    type: String,
+    description: 'Time zone used to expand recurring occurrences.',
+  })
+  @ApiOkResponse({
+    description: 'Events retrieved successfully.',
+    type: [EventOccurrenceResponseDto],
+  })
+  @ApiBadRequestResponse({
+    description: 'A date range was supplied incompletely or invalid.',
+  })
   findAll(
     @Query() query: ListEventDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -32,6 +80,18 @@ export class EventsController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get an event by id' })
+  @ApiParam({
+    name: 'id',
+    description: 'Event UUID.',
+    type: String,
+    format: 'uuid',
+  })
+  @ApiOkResponse({
+    description: 'Event retrieved successfully.',
+    type: EventResponseDto,
+  })
+  @ApiNotFoundResponse({ description: 'Event not found.' })
   findOne(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -40,6 +100,18 @@ export class EventsController {
   }
 
   @Post()
+  @ApiOperation({
+    summary: 'Create a calendar event',
+    description: 'Creates a new event for the authenticated user.',
+  })
+  @ApiBody({ type: CreateEventDto })
+  @ApiCreatedResponse({
+    description: 'Event created successfully.',
+    type: EventResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation failed or the event overlaps an existing booking.',
+  })
   create(
     @Body() createEventDto: CreateEventDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -48,6 +120,23 @@ export class EventsController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update an existing event' })
+  @ApiParam({
+    name: 'id',
+    description: 'Event UUID to update.',
+    type: String,
+    format: 'uuid',
+  })
+  @ApiBody({ type: UpdateEventDto })
+  @ApiOkResponse({
+    description: 'Event updated successfully.',
+    type: EventResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      'Validation failed or the updated event overlaps an existing booking.',
+  })
+  @ApiNotFoundResponse({ description: 'Event not found.' })
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateEventDto: UpdateEventDto,
@@ -57,6 +146,23 @@ export class EventsController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete an event' })
+  @ApiParam({
+    name: 'id',
+    description: 'Event UUID to delete.',
+    type: String,
+    format: 'uuid',
+  })
+  @ApiOkResponse({
+    description: 'Event deleted successfully.',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+      },
+    },
+  })
+  @ApiNotFoundResponse({ description: 'Event not found.' })
   remove(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthenticatedUser,

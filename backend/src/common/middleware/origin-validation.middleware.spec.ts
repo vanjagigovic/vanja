@@ -1,7 +1,18 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { ForbiddenException } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
-import { OriginValidationMiddleware } from './origin-validation.middleware';
+import { parseEnv } from '../../config/env';
+import {
+  isAllowedOrigin,
+  OriginValidationMiddleware,
+} from './origin-validation.middleware';
+
+const baseEnv = {
+  DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/calendar',
+  JWT_ACCESS_SECRET: 'a'.repeat(64),
+  FRONTEND_URL: 'http://localhost:5175',
+  PORT: '3001',
+};
 
 describe('OriginValidationMiddleware', () => {
   it('allows requests from the configured frontend origin', () => {
@@ -34,5 +45,31 @@ describe('OriginValidationMiddleware', () => {
     new OriginValidationMiddleware().use(request, {} as Response, next);
 
     expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows same-origin Swagger requests in development', () => {
+    const config = parseEnv({ ...baseEnv, NODE_ENV: 'development' });
+
+    expect(isAllowedOrigin('http://localhost:3001', config)).toBe(true);
+    expect(isAllowedOrigin('http://127.0.0.1:3001', config)).toBe(true);
+  });
+
+  it('rejects the backend origin in production', () => {
+    const config = parseEnv({ ...baseEnv, NODE_ENV: 'production' });
+
+    expect(isAllowedOrigin('http://localhost:3001', config)).toBe(false);
+    expect(isAllowedOrigin('http://localhost:5175', config)).toBe(true);
+  });
+
+  it('rejects arbitrary origins in development and production', () => {
+    const development = parseEnv({ ...baseEnv, NODE_ENV: 'development' });
+    const production = parseEnv({ ...baseEnv, NODE_ENV: 'production' });
+
+    expect(isAllowedOrigin('https://attacker.example', development)).toBe(
+      false,
+    );
+    expect(isAllowedOrigin('https://attacker.example', production)).toBe(
+      false,
+    );
   });
 });
