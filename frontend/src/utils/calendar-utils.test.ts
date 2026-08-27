@@ -64,9 +64,14 @@ describe("calendar date utilities", () => {
 
   describe("timezone helpers", () => {
     it("returns the browser timezone when it is available", () => {
-      const dateTimeFormat = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(
-        () => ({ resolvedOptions: () => ({ timeZone: BELGRADE }) }) as Intl.DateTimeFormat,
-      );
+      const dateTimeFormat = vi
+        .spyOn(Intl, "DateTimeFormat")
+        .mockImplementation(
+          () =>
+            ({
+              resolvedOptions: () => ({ timeZone: BELGRADE }),
+            }) as Intl.DateTimeFormat,
+        );
 
       expect(getBrowserTimeZone()).toBe(BELGRADE);
       expect(dateTimeFormat).toHaveBeenCalled();
@@ -74,7 +79,10 @@ describe("calendar date utilities", () => {
 
     it("falls back to UTC when the browser does not report a timezone", () => {
       vi.spyOn(Intl, "DateTimeFormat").mockImplementation(
-        () => ({ resolvedOptions: () => ({ timeZone: "" }) }) as Intl.DateTimeFormat,
+        () =>
+          ({
+            resolvedOptions: () => ({ timeZone: "" }),
+          }) as Intl.DateTimeFormat,
       );
 
       expect(getBrowserTimeZone()).toBe(UTC);
@@ -92,7 +100,10 @@ describe("calendar date utilities", () => {
 
     it("uses the fallback timezone list when supportedValuesOf is unavailable", () => {
       const dateTimeFormat = vi.fn(
-        () => ({ resolvedOptions: () => ({ timeZone: BELGRADE }) }) as Intl.DateTimeFormat,
+        () =>
+          ({
+            resolvedOptions: () => ({ timeZone: BELGRADE }),
+          }) as Intl.DateTimeFormat,
       );
       vi.stubGlobal("Intl", { DateTimeFormat: dateTimeFormat });
 
@@ -111,19 +122,27 @@ describe("calendar date utilities", () => {
       const sunday = dateAtUtc("2026-04-12T15:30:00.000Z");
       const monday = dateAtUtc("2026-04-13T15:30:00.000Z");
 
-      expect(getWeekStart(sunday).getFullYear()).toBe(2026);
-      expect(getWeekStart(sunday).getMonth()).toBe(3);
-      expect(getWeekStart(sunday).getDate()).toBe(6);
-      expect(getWeekStart(monday).getFullYear()).toBe(2026);
-      expect(getWeekStart(monday).getMonth()).toBe(3);
-      expect(getWeekStart(monday).getDate()).toBe(13);
+      expect(
+        DateTime.fromJSDate(getWeekStart(sunday, UTC))
+          .setZone(UTC)
+          .toFormat("yyyy-LL-dd"),
+      ).toBe("2026-04-06");
+      expect(
+        DateTime.fromJSDate(getWeekStart(monday, UTC))
+          .setZone(UTC)
+          .toFormat("yyyy-LL-dd"),
+      ).toBe("2026-04-13");
     });
 
     it("adds positive and negative day amounts without mutating the input", () => {
       const original = dateAtUtc("2026-04-10T15:30:00.000Z");
 
-      expect(addDays(original, 3)).toEqual(dateAtUtc("2026-04-13T15:30:00.000Z"));
-      expect(addDays(original, -5)).toEqual(dateAtUtc("2026-04-05T15:30:00.000Z"));
+      expect(addDays(original, 3)).toEqual(
+        dateAtUtc("2026-04-13T15:30:00.000Z"),
+      );
+      expect(addDays(original, -5)).toEqual(
+        dateAtUtc("2026-04-05T15:30:00.000Z"),
+      );
       expect(original).toEqual(dateAtUtc("2026-04-10T15:30:00.000Z"));
     });
 
@@ -133,7 +152,9 @@ describe("calendar date utilities", () => {
     });
 
     it("supports negative month movement and preserves valid month-end dates", () => {
-      expect(addMonth(new Date(2026, 2, 31), -1)).toEqual(new Date(2026, 1, 28));
+      expect(addMonth(new Date(2026, 2, 31), -1)).toEqual(
+        new Date(2026, 1, 28),
+      );
       expect(addMonth(new Date(2026, 3, 15), 1)).toEqual(new Date(2026, 4, 15));
     });
   });
@@ -163,12 +184,23 @@ describe("calendar date utilities", () => {
       });
     });
 
-    it("formats day, week, and month labels", () => {
+    it("formats day, week, and month labels in the requested timezone", () => {
       expect(formatRangeLabel("day", currentDate, UTC)).toBe(
         "Friday, 10 April 2026",
       );
-      expect(formatRangeLabel("week", currentDate, UTC)).toBe("05 Apr - 11 Apr");
+      for (const timeZone of [UTC, BELGRADE, NEW_YORK]) {
+        expect(formatRangeLabel("week", currentDate, timeZone)).toBe(
+          "06 Apr - 12 Apr",
+        );
+      }
       expect(formatRangeLabel("month", currentDate, UTC)).toBe("April 2026");
+    });
+
+    it("uses the requested timezone when the local calendar date differs", () => {
+      const date = dateAtUtc("2026-04-05T23:30:00.000Z");
+
+      expect(formatRangeLabel("week", date, UTC)).toBe("30 Mar - 05 Apr");
+      expect(formatRangeLabel("week", date, BELGRADE)).toBe("06 Apr - 12 Apr");
     });
   });
 
@@ -237,7 +269,10 @@ describe("calendar date utilities", () => {
     });
 
     it("uses timezone day boundaries when checking overlap", () => {
-      const event = eventAt("2026-04-10T23:30:00.000Z", "2026-04-11T00:30:00.000Z");
+      const event = eventAt(
+        "2026-04-10T23:30:00.000Z",
+        "2026-04-11T00:30:00.000Z",
+      );
 
       expect(eventOccursOnDateInZone(event, selectedDay, NEW_YORK)).toBe(true);
       expect(eventOccursOnDateInZone(event, selectedDay, BELGRADE)).toBe(false);
@@ -272,8 +307,12 @@ describe("calendar date utilities", () => {
     it("calculates slot starts at day zero and later slots in UTC", () => {
       const date = dateAtUtc("2026-04-10T15:45:00.000Z");
 
-      expect(getSlotStartUtc(date, 0, 30, UTC)).toBe("2026-04-10T00:00:00.000Z");
-      expect(getSlotStartUtc(date, 3, 30, UTC)).toBe("2026-04-10T01:30:00.000Z");
+      expect(getSlotStartUtc(date, 0, 30, UTC)).toBe(
+        "2026-04-10T00:00:00.000Z",
+      );
+      expect(getSlotStartUtc(date, 3, 30, UTC)).toBe(
+        "2026-04-10T01:30:00.000Z",
+      );
     });
 
     it("calculates slots from the selected timezone's local day", () => {
@@ -394,7 +433,11 @@ describe("scheduleReminderNotifications", () => {
       }),
     ];
 
-    const cleanup = scheduleReminderNotifications(events, UTC, () => "Reminder");
+    const cleanup = scheduleReminderNotifications(
+      events,
+      UTC,
+      () => "Reminder",
+    );
 
     expect(vi.getTimerCount()).toBe(2);
     cleanup();
@@ -405,7 +448,9 @@ describe("scheduleReminderNotifications", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-10T10:00:00.000Z"));
     const notificationConstructor = vi.fn();
-    const notification = Object.assign(notificationConstructor, { permission: "granted" });
+    const notification = Object.assign(notificationConstructor, {
+      permission: "granted",
+    });
     vi.stubGlobal("Notification", notification);
     Object.defineProperty(window, "Notification", {
       configurable: true,
@@ -427,14 +472,17 @@ describe("scheduleReminderNotifications", () => {
       }),
     ];
 
-    const cleanup = scheduleReminderNotifications(events, BELGRADE, (key) => key);
+    const cleanup = scheduleReminderNotifications(
+      events,
+      BELGRADE,
+      (key) => key,
+    );
 
     expect(vi.getTimerCount()).toBe(1);
     vi.advanceTimersByTime(30 * 60 * 1000);
-    expect(notification).toHaveBeenCalledWith(
-      "reminder: Planning session",
-      { body: "13:00 - 14:00 (UTC)" },
-    );
+    expect(notification).toHaveBeenCalledWith("reminder: Planning session", {
+      body: "13:00 - 14:00 (UTC)",
+    });
 
     cleanup();
     expect(vi.getTimerCount()).toBe(0);

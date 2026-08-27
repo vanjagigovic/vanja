@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { DateTime } from "luxon";
 import {
   addDays,
   formatRangeLabel,
@@ -28,26 +29,25 @@ export function useCalendarViewModel({
     }
     if (currentView === "week") {
       return Array.from({ length: 7 }, (_, index) =>
-        addDays(getWeekStart(currentDate), index),
+        addDays(getWeekStart(currentDate, viewTimeZone), index),
       );
     }
 
     return [] as Date[];
-  }, [currentDate, currentView]);
+  }, [currentDate, currentView, viewTimeZone]);
 
   const monthCells = useMemo(() => {
     if (currentView !== "month") {
       return [] as Date[];
     }
 
-    const monthStart = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      1,
-    );
-    const firstCell = getWeekStart(monthStart);
+    const monthStart = DateTime.fromJSDate(currentDate)
+      .setZone(viewTimeZone)
+      .startOf("month")
+      .toJSDate();
+    const firstCell = getWeekStart(monthStart, viewTimeZone);
     return Array.from({ length: 42 }, (_, index) => addDays(firstCell, index));
-  }, [currentDate, currentView]);
+  }, [currentDate, currentView, viewTimeZone]);
   // console.log("currentView:", currentView);
   // console.log("visibleDays:", visibleDays);
   // console.log("monthCells:", monthCells);
