@@ -26,7 +26,7 @@ const envSchema = z
       .transform((value) => value === 'true'),
     DATABASE_URL: z.string().min(1),
     PORT: z.coerce.number().int().positive().default(3001),
-    FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+    FRONTEND_URL: z.string().url().default('http://localhost:5175'),
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS: z.coerce
       .number()

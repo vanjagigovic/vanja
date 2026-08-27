@@ -160,7 +160,7 @@ npm --prefix frontend run dev
 npm --prefix backend run start:dev
 ```
 
-Vite serves the frontend at its displayed local URL, normally `http://localhost:5173`; the API defaults to `http://localhost:3001`.
+Vite serves the frontend at its displayed local URL, normally `http://localhost:5175`; the API defaults to `http://localhost:3001`.
 
 ## Environment variables
 
@@ -172,7 +172,7 @@ Backend variables are validated in `backend/src/config/env.ts`:
 | `TRUST_PROXY` | No | `false` |
 | `DATABASE_URL` | Yes | PostgreSQL connection URL |
 | `PORT` | No | `3001` |
-| `FRONTEND_URL` | No | `http://localhost:5173` |
+| `FRONTEND_URL` | No | `http://localhost:5175` |
 | `JWT_ACCESS_SECRET` | Yes | At least 32 characters; production requires at least 64 and rejects placeholders |
 | `JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS` | No | `900` |
 | `JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS` | No | `2592000` |

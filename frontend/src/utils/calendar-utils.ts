@@ -23,14 +23,13 @@ export function getSupportedTimeZones(): string[] {
   ];
 }
 
-export function getWeekStart(date: Date): Date {
-  const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const day = copy.getDay();
-  const offset = day === 0 ? -6 : 1 - day;
+export function getWeekStart(date: Date, timeZone: string): Date {
+  const zonedDate = DateTime.fromJSDate(date).setZone(timeZone);
 
-  copy.setDate(copy.getDate() + offset);
-
-  return copy;
+  return zonedDate
+    .startOf("day")
+    .minus({ days: zonedDate.weekday - 1 })
+    .toJSDate();
 }
 
 export function addDays(date: Date, amount: number): Date {
@@ -90,7 +89,7 @@ export function buildRangeForView(
     };
   }
 
-  const weekStart = DateTime.fromJSDate(getWeekStart(currentDate))
+  const weekStart = DateTime.fromJSDate(getWeekStart(currentDate, timeZone))
     .setZone(timeZone)
     .startOf("day");
 
@@ -115,9 +114,9 @@ export function formatRangeLabel(
     return zonedDate.toFormat("LLLL yyyy");
   }
 
-  const start = DateTime.fromJSDate(getWeekStart(currentDate)).setZone(
-    timeZone,
-  );
+  const start = DateTime.fromJSDate(
+    getWeekStart(currentDate, timeZone),
+  ).setZone(timeZone);
   const end = start.plus({ days: 6 });
 
   return `${start.toFormat("dd LLL")} - ${end.toFormat("dd LLL")}`;
