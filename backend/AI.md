@@ -190,6 +190,8 @@ The repo already enforces the rule that only the query-appropriate index pattern
 ## Backend AI workflow
 
 1. Identify the relevant module.
+
+Before merging AI-assisted backend work, a developer must review the generated code and any documentation changes. Treat AI output and generated tests as untrusted drafts: verify behavior against the controllers, services, DTOs, schema, migrations, and security configuration, and do not use coverage growth as a substitute for meaningful tests. Run the relevant lint, build, and Jest commands. Never place secrets, credentials, tokens, passwords, or sensitive production data in prompts or generated files. Authentication, authorization, cookie, token rotation, password hashing, and validation changes require explicit security review.
 2. Inspect controller, DTO, service, repository, schema, and tests.
 3. Understand the existing data flow.
 4. Check existing validation and security behavior.
