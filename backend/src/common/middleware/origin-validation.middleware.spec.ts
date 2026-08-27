@@ -68,8 +68,6 @@ describe('OriginValidationMiddleware', () => {
     expect(isAllowedOrigin('https://attacker.example', development)).toBe(
       false,
     );
-    expect(isAllowedOrigin('https://attacker.example', production)).toBe(
-      false,
-    );
+    expect(isAllowedOrigin('https://attacker.example', production)).toBe(false);
   });
 });
