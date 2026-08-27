@@ -88,9 +88,9 @@ The repository is organized as a small monorepo:
 
 The API is served by the backend on port `3001` by default. Main route groups are:
 
-| Group | Routes |
-| --- | --- |
-| Auth | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout` |
+| Group  | Routes                                                                                      |
+| ------ | ------------------------------------------------------------------------------------------- |
+| Auth   | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`        |
 | Events | `GET /events`, `GET /events/:id`, `POST /events`, `PATCH /events/:id`, `DELETE /events/:id` |
 
 Event list requests accept a time range, and event creation/update applies date, recurrence, ownership, and overlap rules in the service layer. Errors are normalized through the backend HTTP exception filter; conflicts can include suggested alternative times.
@@ -166,21 +166,25 @@ Vite serves the frontend at its displayed local URL, normally `http://localhost:
 
 Backend variables are validated in `backend/src/config/env.ts`:
 
-| Variable | Required | Default or notes |
-| --- | --- | --- |
-| `NODE_ENV` | No | `development`; accepts `development`, `test`, or `production` |
-| `TRUST_PROXY` | No | `false` |
-| `DATABASE_URL` | Yes | PostgreSQL connection URL |
-| `PORT` | No | `3001` |
-| `FRONTEND_URL` | No | `http://localhost:5175` |
-| `JWT_ACCESS_SECRET` | Yes | At least 32 characters; production requires at least 64 and rejects placeholders |
-| `JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS` | No | `900` |
-| `JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS` | No | `2592000` |
-| `REFRESH_TOKEN_COOKIE_NAME` | No | `refresh_token` |
-| `AUTH_COOKIE_SECURE` | No | `false` locally; must be `true` in production |
-| `AUTH_COOKIE_SAME_SITE` | No | `lax`; accepts `strict`, `lax`, or `none` |
+| Variable                               | Required | Default or notes                                                                 |
+| -------------------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `NODE_ENV`                             | No       | `development`; accepts `development`, `test`, or `production`                    |
+| `TRUST_PROXY`                          | No       | `false`                                                                          |
+| `DATABASE_URL`                         | Yes      | PostgreSQL connection URL                                                        |
+| `PORT`                                 | No       | `3001`                                                                           |
+| `FRONTEND_URL`                         | No       | `http://localhost:5175`                                                          |
+| `JWT_ACCESS_SECRET`                    | Yes      | At least 32 characters; production requires at least 64 and rejects placeholders |
+| `JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS`  | No       | `900`                                                                            |
+| `JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS` | No       | `2592000`                                                                        |
+| `REFRESH_TOKEN_COOKIE_NAME`            | No       | `refresh_token`                                                                  |
+| `AUTH_COOKIE_SECURE`                   | No       | `false` locally; must be `true` in production                                    |
+| `AUTH_COOKIE_SAME_SITE`                | No       | `lax`; accepts `strict`, `lax`, or `none`                                        |
 
 Frontend configuration is read from `VITE_API_BASE_URL` and falls back to `http://localhost:3001`.
+
+## Observability and request tracing
+
+The backend uses a request-scoped context and middleware to attach a correlation ID to each request and log the start/completion of HTTP calls without exposing tokens or secrets. `RequestLoggingMiddleware` records method, path, status, and duration for debugging, while `AuthService` emits structured security-event logs for registration, login, refresh, and logout outcomes. The app keeps these logs operational and focused on auditability rather than sensitive payload data.
 
 ## Testing and quality checks
 
@@ -197,9 +201,17 @@ npm --prefix frontend run build
 npm --prefix backend run build
 ```
 
-Frontend tests use Vitest and React Testing Library for rendered behavior, user interaction, auth/session state, and query-driven calendar behavior. Backend tests use Jest for environment validation, authentication, event controller/service behavior, and schema/index guardrails. These are unit and focused integration-style tests; the repository does not currently provide an end-to-end test suite.
+Frontend tests use Vitest and React Testing Library for rendered behavior, user interaction, auth/session state, and query-driven calendar behavior. Backend tests use Jest for environment validation, authentication, event controller/service behavior, and schema/index guardrails. These are unit and focused integration-style tests; the repository does not currently provide an end-to-end test suite. Coverage reports are generated with the `--coverage` scripts, but the repo does not currently enforce a single global coverage threshold.
 
 The root `prepare` script initializes Husky, and lint-staged runs the relevant ESLint configuration for staged TypeScript files. The root `test` script is not a project test runner; use the frontend and backend commands above.
+
+## CI/CD and GitHub Actions
+
+GitHub Actions runs the frontend and backend validation pipeline on pull requests and on pushes to `main` via `.github/workflows/ci.yml`.
+
+- Frontend job: install, lint, test, and build the React app.
+- Backend job: install, run `lint:ci`, run Jest, and build the NestJS app.
+- CI also sets the required `NODE_ENV` and test `DATABASE_URL`/JWT secret values for backend execution.
 
 ## Documentation map
 

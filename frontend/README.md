@@ -41,4 +41,4 @@ npm run lint
 npm run build
 ```
 
-Tests use Vitest and React Testing Library and focus on rendered behavior, user interaction, authentication state, API-boundary behavior, and calendar query behavior. Frontend-specific AI implementation rules are in [AI.md](AI.md).
+Tests use Vitest and React Testing Library and focus on rendered behavior, user interaction, authentication state, API-boundary behavior, and calendar query behavior. Coverage reports are generated via `npm run test:coverage`, and the CI workflow in `.github/workflows/ci.yml` runs the same frontend lint/test/build sequence on pull requests and pushes to `main`. Frontend-specific AI implementation rules are in [AI.md](AI.md).
