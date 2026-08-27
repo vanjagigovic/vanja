@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
@@ -41,6 +42,35 @@ describe('HttpExceptionFilter', () => {
     expect(json.mock.calls[0][0]).not.toHaveProperty('options');
   });
 
+  it('serializes a string HttpException response as the public message', () => {
+    filter.catch(new HttpException('Event not found', 404), host);
+
+    expect(status).toHaveBeenCalledWith(404);
+    expect(json).toHaveBeenCalledWith({
+      statusCode: 404,
+      timestamp: expect.any(String),
+      path: '/test',
+      message: 'Event not found',
+    });
+  });
+
+  it('uses the request-failed message for a non-record HttpException response', () => {
+    const exception = new HttpException({}, 400);
+    Object.defineProperty(exception, 'response', {
+      configurable: true,
+      value: null,
+    });
+
+    filter.catch(exception, host);
+
+    expect(json).toHaveBeenCalledWith({
+      statusCode: 400,
+      timestamp: expect.any(String),
+      path: '/test',
+      message: 'Request failed',
+    });
+  });
+
   it('preserves validation messages as a string array without internal fields', () => {
     filter.catch(
       new BadRequestException({
@@ -60,6 +90,23 @@ describe('HttpExceptionFilter', () => {
       error: 'Bad Request',
     });
     expect(json.mock.calls[0][0]).not.toHaveProperty('options');
+  });
+
+  it('falls back when an object response has an invalid message value', () => {
+    filter.catch(
+      new BadRequestException({
+        message: ['valid message', 42],
+        error: 'Bad Request',
+      }),
+      host,
+    );
+
+    expect(json.mock.calls[0][0]).toMatchObject({
+      statusCode: 400,
+      path: '/test',
+      message: 'Request failed',
+      error: 'Bad Request',
+    });
   });
 
   it('returns a generic response for unexpected errors', () => {
@@ -104,6 +151,37 @@ describe('HttpExceptionFilter', () => {
         endUtc: '2099-01-01T11:00:00.000Z',
       },
     });
+    expect(json.mock.calls[0][0]).not.toHaveProperty('internal');
+  });
+
+  it('preserves safe conflict data and excludes invalid optional data', () => {
+    filter.catch(
+      new ConflictException({
+        message: 'Event overlaps an existing booking',
+        conflict: {
+          eventId: 'event-id',
+          occurrenceStartUtc: '2099-01-01T10:00:00.000Z',
+          occurrenceEndUtc: '2099-01-01T11:00:00.000Z',
+          title: 'Existing booking',
+        },
+        suggestedTime: { startUtc: 'not-a-date' },
+        internal: 'hidden',
+      }),
+      host,
+    );
+
+    expect(json.mock.calls[0][0]).toMatchObject({
+      statusCode: 409,
+      path: '/test',
+      message: 'Event overlaps an existing booking',
+      conflict: {
+        eventId: 'event-id',
+        occurrenceStartUtc: '2099-01-01T10:00:00.000Z',
+        occurrenceEndUtc: '2099-01-01T11:00:00.000Z',
+        title: 'Existing booking',
+      },
+    });
+    expect(json.mock.calls[0][0]).not.toHaveProperty('suggestedTime');
     expect(json.mock.calls[0][0]).not.toHaveProperty('internal');
   });
 

@@ -149,4 +149,106 @@ describe('useEventDialogState', () => {
     );
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  it('reports missing start and end fields without attempting to build a start time', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const { result } = setup({ onSave });
+
+    act(() => {
+      result.current.setTitle('Planning session');
+      result.current.setStartLocal('');
+      result.current.setEndLocal('');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit({
+        preventDefault() {},
+      } as React.FormEvent);
+    });
+
+    expect(result.current.fieldErrors.startLocal).toBe('Start date is required');
+    expect(result.current.fieldErrors.endLocal).toBe('End date is required');
+    expect(result.current.error).toBe('Start date is required');
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('requires a repeat-until value when weekly repetition is enabled', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const futureStart = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const futureEnd = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const { result } = setup({
+      initialStartUtc: futureStart,
+      initialEndUtc: futureEnd,
+      onSave,
+    });
+
+    act(() => {
+      result.current.setTitle('Weekly planning');
+      result.current.setRepeatWeekly(true);
+      result.current.setRepeatUntil('');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit({
+        preventDefault() {},
+      } as React.FormEvent);
+    });
+
+    expect(result.current.fieldErrors.repeatUntil).toBe(
+      'Repeat-until date is required',
+    );
+    expect(result.current.error).toBe('Please fill in all required fields');
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('converts all populated date fields when the timezone changes', () => {
+    const event: CalendarEvent = {
+      id: '1',
+      title: 'Existing event',
+      startUtc: '2026-04-10T09:00:00.000Z',
+      endUtc: '2026-04-10T10:00:00.000Z',
+      timeZone: 'UTC',
+      eventType: 'work',
+      repeatWeekly: true,
+      repeatUntilUtc: '2026-04-17T09:00:00.000Z',
+      reminderEnabled: false,
+      occurrenceId: '1',
+      baseEventId: '1',
+      reminderAtUtc: null,
+    };
+    const { result } = setup({ event });
+
+    act(() => {
+      result.current.setTimeZone('Europe/Belgrade');
+    });
+
+    expect(result.current.timeZone).toBe('Europe/Belgrade');
+    expect(result.current.startLocal).toBe('2026-04-10T11:00');
+    expect(result.current.endLocal).toBe('2026-04-10T12:00');
+    expect(result.current.repeatUntil).toBe('2026-04-17T11:00');
+  });
+
+  it('does nothing when delete is not available', async () => {
+    const { result } = setup();
+
+    await act(async () => {
+      await result.current.handleDelete();
+    });
+
+    expect(result.current.saving).toBe(false);
+  });
+
+  it('runs delete and reports delete failures', async () => {
+    const onDelete = vi.fn().mockRejectedValue(new Error('Delete failed'));
+    const { result } = setup({ onDelete });
+
+    await act(async () => {
+      await result.current.handleDelete();
+    });
+
+    expect(onDelete).toHaveBeenCalledOnce();
+    expect(result.current.error).toBe('Delete failed');
+    expect(result.current.saving).toBe(false);
+    expect(result.current.canSave).toBe(true);
+  });
 });

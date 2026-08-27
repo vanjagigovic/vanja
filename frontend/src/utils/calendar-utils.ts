@@ -198,7 +198,7 @@ export function getEventBlockMetrics(
 
   return {
     startMinutes: start.hour * 60 + start.minute,
-    endMinutes: end.hour * 60 + end.minute,
+    endMinutes: end.equals(endOfDay) ? 24 * 60 : end.hour * 60 + end.minute,
   };
 }
 

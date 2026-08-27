@@ -164,6 +164,34 @@ describe('AuthService', () => {
     ]);
   });
 
+  it('rejects login when the account does not exist without verifying a password', async () => {
+    db.select.mockReturnValue(selectResult([]));
+
+    await expect(
+      service.login({ email: 'missing@example.com', password: 'password123' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(passwordService.verify).not.toHaveBeenCalled();
+  });
+
+  it('propagates registration database failures before creating a session', async () => {
+    const databaseError = new Error('Registration query failed');
+    db.select.mockReturnValue({
+      from: () => ({
+        where: () => ({
+          limit: async () => {
+            throw databaseError;
+          },
+        }),
+      }),
+    });
+
+    await expect(
+      service.register({ email: 'user@example.com', password: 'password123' }),
+    ).rejects.toBe(databaseError);
+    expect(passwordService.hash).not.toHaveBeenCalled();
+  });
+
   it('rotates a valid refresh token and rejects the old token later', async () => {
     const session = {
       id: 'session-id',
@@ -215,6 +243,85 @@ describe('AuthService', () => {
     ]);
   });
 
+  it('rejects a refresh request without a refresh token', async () => {
+    await expect(service.refresh(undefined)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown refresh token', async () => {
+    db.select.mockReturnValue(selectResult([]));
+
+    await expect(service.refresh('unknown-refresh-token')).rejects.toThrow(
+      'Invalid refresh token',
+    );
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects an expired refresh session', async () => {
+    db.select.mockReturnValue(
+      selectResult([
+        {
+          id: 'session-id',
+          userId: 'user-id',
+          tokenHash: 'stored-token-hash',
+          expiresAt: new Date(Date.now() - 1),
+          revokedAt: null,
+        },
+      ]),
+    );
+
+    await expect(service.refresh('expired-refresh-token')).rejects.toThrow(
+      'Invalid refresh token',
+    );
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a refresh session whose user no longer exists', async () => {
+    const session = {
+      id: 'session-id',
+      userId: 'missing-user-id',
+      tokenHash: 'stored-token-hash',
+      expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: null,
+    };
+    db.select
+      .mockReturnValueOnce(selectResult([session]))
+      .mockReturnValueOnce(selectResult([]));
+
+    await expect(service.refresh('orphaned-refresh-token')).rejects.toThrow(
+      'Invalid refresh token',
+    );
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects refresh-token reuse when the session cannot be revoked', async () => {
+    const session = {
+      id: 'session-id',
+      userId: 'user-id',
+      tokenHash: 'stored-token-hash',
+      expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: null,
+    };
+    db.select
+      .mockReturnValueOnce(selectResult([session]))
+      .mockReturnValueOnce(
+        selectResult([{ id: 'user-id', email: 'user@example.com' }]),
+      );
+    db.update.mockReturnValue({
+      set: () => ({
+        where: () => ({ returning: async () => [] }),
+      }),
+    });
+
+    await expect(service.refresh('reused-refresh-token')).rejects.toThrow(
+      'Invalid refresh token',
+    );
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
   it('revokes an active session during logout', async () => {
     db.update.mockReturnValue({
       set: () => ({
@@ -243,6 +350,26 @@ describe('AuthService', () => {
       'timestamp',
       'userId',
     ]);
+  });
+
+  it('completes logout without a refresh token', async () => {
+    await expect(service.logout(undefined)).resolves.toBeUndefined();
+
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('completes logout when the refresh token has no active session', async () => {
+    db.update.mockReturnValue({
+      set: () => ({
+        where: () => ({ returning: async () => [] }),
+      }),
+    });
+
+    await expect(
+      service.logout('inactive-refresh-token'),
+    ).resolves.toBeUndefined();
+
+    expect(db.update).toHaveBeenCalledTimes(1);
   });
 
   it('cleans expired and revoked sessions without targeting active sessions', async () => {
