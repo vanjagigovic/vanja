@@ -1,4 +1,5 @@
 import type { SxProps, Theme } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 
 type EventColors = {
   background: string;
@@ -10,6 +11,8 @@ type EventMetrics = {
   startMinutes: number;
   endMinutes: number;
 };
+
+type ThemeSx = (theme: Theme) => SystemStyleObject<Theme>;
 
 export const timeGridEventCardSx = (
   colors: EventColors,
@@ -97,7 +100,7 @@ export const eventDialogBackdropSx: SxProps<Theme> = (theme) => ({
 });
 
 export const eventDialogPaperSx =
-  (isMobile: boolean): SxProps<Theme> =>
+  (isMobile: boolean): ThemeSx =>
   (theme) => ({
     borderRadius: isMobile ? 0 : "10px",
     border: `1px solid ${theme.custom.glass.toolbar.border}`,
@@ -324,7 +327,7 @@ export const eventDialogDeleteConfirmButtonSx: SxProps<Theme> = (theme) => ({
 });
 
 export const eventDialogSuggestedTimeButtonSx =
-  (isMobile: boolean): SxProps<Theme> =>
+  (isMobile: boolean): ThemeSx =>
   (theme) => ({
     border: `1px solid ${theme.custom.borders.strong}`,
     px: 1.25,
