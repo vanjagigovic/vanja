@@ -1,0 +1,37 @@
+name: Documentation Context
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  documentation-context:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate documentation context
+        run: npm run docs:check
+
+      - name: Verify generated context file
+        run: |
+          test -f .ai/documentation-context.md
+          echo "Documentation context generated successfully."
+          echo "Generated files:"
+          ls -la .ai
+
+      - name: Summarize context status
+        run: |
+          echo "Documentation context generation completed without modifying application code."
+          echo "This workflow only validates and generates repository context for AI-assisted documentation maintenance."

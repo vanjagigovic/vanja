@@ -8,3 +8,4 @@ build
 frontend/coverage/
 backend/coverage/
 coverage/
+.ai/documentation-context.md
