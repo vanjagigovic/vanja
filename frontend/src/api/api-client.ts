@@ -123,11 +123,15 @@ async function createApiError(response: Response): Promise<ApiError> {
 
   try {
     const body = (await response.json()) as {
-      message?: string;
+      message?: string | string[];
       error?: string;
     };
     details = body;
-    message = body.message || body.error || message;
+    if (Array.isArray(body.message)) {
+      message = body.message.join("; ");
+    } else {
+      message = body.message || body.error || message;
+    }
   } catch {
     message = await response.text();
   }

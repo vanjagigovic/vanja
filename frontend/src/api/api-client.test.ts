@@ -88,4 +88,17 @@ describe("apiRequest session expiration", () => {
     expect(listener).not.toHaveBeenCalled();
     unregister();
   });
+
+  it("normalizes validation message arrays while preserving error details", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      response(400, { message: ["title should not be empty", "email is invalid"] }),
+    );
+
+    await expect(apiRequest("/events", { method: "POST" })).rejects.toMatchObject({
+      message: "title should not be empty; email is invalid",
+      details: {
+        message: ["title should not be empty", "email is invalid"],
+      },
+    });
+  });
 });

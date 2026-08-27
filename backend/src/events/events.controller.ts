@@ -15,12 +15,15 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiConflictResponse,
+  ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -33,6 +36,7 @@ import {
   EventResponseDto,
 } from './dto/event-response-dto';
 import { EventsService } from './events.service';
+import { ApiErrorResponseDto } from '../common/dto/api-error-response-dto';
 
 @ApiTags('Events')
 @Controller('events')
@@ -51,13 +55,15 @@ export class EventsController {
     name: 'rangeStartUtc',
     required: false,
     type: String,
-    description: 'Inclusive range start in ISO 8601 UTC format.',
+    description:
+      'Inclusive range start instant in ISO 8601 format. Offset values are accepted.',
   })
   @ApiQuery({
     name: 'rangeEndUtc',
     required: false,
     type: String,
-    description: 'Inclusive range end in ISO 8601 UTC format.',
+    description:
+      'Exclusive range end instant in ISO 8601 format. Offset values are accepted.',
   })
   @ApiQuery({
     name: 'viewTimeZone',
@@ -71,6 +77,15 @@ export class EventsController {
   })
   @ApiBadRequestResponse({
     description: 'A date range was supplied incompletely or invalid.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication is required.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error.',
+    type: ApiErrorResponseDto,
   })
   findAll(
     @Query() query: ListEventDto,
@@ -91,7 +106,22 @@ export class EventsController {
     description: 'Event retrieved successfully.',
     type: EventResponseDto,
   })
-  @ApiNotFoundResponse({ description: 'Event not found.' })
+  @ApiNotFoundResponse({
+    description: 'Event not found.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'The event id is not a UUID.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication is required.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error.',
+    type: ApiErrorResponseDto,
+  })
   findOne(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -110,7 +140,20 @@ export class EventsController {
     type: EventResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Validation failed or the event overlaps an existing booking.',
+    description: 'Validation failed.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description: 'The event overlaps an existing booking.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication is required.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error.',
+    type: ApiErrorResponseDto,
   })
   create(
     @Body() createEventDto: CreateEventDto,
@@ -133,10 +176,25 @@ export class EventsController {
     type: EventResponseDto,
   })
   @ApiBadRequestResponse({
-    description:
-      'Validation failed or the updated event overlaps an existing booking.',
+    description: 'Validation failed.',
+    type: ApiErrorResponseDto,
   })
-  @ApiNotFoundResponse({ description: 'Event not found.' })
+  @ApiNotFoundResponse({
+    description: 'Event not found.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description: 'The event overlaps an existing booking.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication is required.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error.',
+    type: ApiErrorResponseDto,
+  })
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateEventDto: UpdateEventDto,
@@ -162,7 +220,22 @@ export class EventsController {
       },
     },
   })
-  @ApiNotFoundResponse({ description: 'Event not found.' })
+  @ApiNotFoundResponse({
+    description: 'Event not found.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'The event id is not a UUID.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication is required.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error.',
+    type: ApiErrorResponseDto,
+  })
   remove(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthenticatedUser,
