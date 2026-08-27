@@ -1,0 +1,4 @@
+npm --prefix frontend run build
+npm --prefix frontend run test
+npm --prefix backend run build
+npm --prefix backend run test
