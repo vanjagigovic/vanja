@@ -1,3 +1,4 @@
+npm run git:validate-branch
 npm --prefix frontend run build
 npm --prefix frontend run test
 npm --prefix backend run build
