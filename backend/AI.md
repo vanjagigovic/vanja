@@ -162,6 +162,8 @@ The repo already enforces the rule that only the query-appropriate index pattern
 - Existing tests cover environment validation, auth behavior, event controller behavior, and schema/index guardrails.
 - Add or update tests when behavior changes.
 - Do not disable test coverage or validation just to make a change pass.
+- Coverage reports are generated via `npm run test:cov`, but do not treat coverage numbers as a substitute for meaningful behavior checks.
+- If a task is limited to documentation or tests, do not change runtime application code without a clear requirement.
 
 ## API response conventions
 
@@ -172,9 +174,10 @@ The repo already enforces the rule that only the query-appropriate index pattern
 
 ## Logging/observability
 
-- The app uses NestJS logger calls for security events in `AuthService`.
+- The app uses NestJS logger calls for security events in `AuthService` and request lifecycle logs in `RequestLoggingMiddleware`.
+- Request logging captures correlation IDs, method, path, status, and duration for each HTTP request without including tokens or credentials.
 - Logs should remain operational and not include sensitive auth material.
-- Keep the logging style focused on security-related events and avoid noisy, general-purpose logging for routine behavior.
+- Keep the logging style focused on security-related events and request diagnostics rather than noisy, general-purpose logging for routine behavior.
 
 ## Authentication and security rules for AI agents
 
@@ -190,8 +193,6 @@ The repo already enforces the rule that only the query-appropriate index pattern
 ## Backend AI workflow
 
 1. Identify the relevant module.
-
-Before merging AI-assisted backend work, a developer must review the generated code and any documentation changes. Treat AI output and generated tests as untrusted drafts: verify behavior against the controllers, services, DTOs, schema, migrations, and security configuration, and do not use coverage growth as a substitute for meaningful tests. Run the relevant lint, build, and Jest commands. Never place secrets, credentials, tokens, passwords, or sensitive production data in prompts or generated files. Authentication, authorization, cookie, token rotation, password hashing, and validation changes require explicit security review.
 2. Inspect controller, DTO, service, repository, schema, and tests.
 3. Understand the existing data flow.
 4. Check existing validation and security behavior.
@@ -199,6 +200,8 @@ Before merging AI-assisted backend work, a developer must review the generated c
 6. Update migrations/tests/API documentation where required.
 7. Run relevant backend validation.
 8. Review the diff for unintended changes.
+
+Before merging AI-assisted backend work, a developer must review the generated code and any documentation changes. Treat AI output and generated tests as untrusted drafts: verify behavior against the controllers, services, DTOs, schema, migrations, and security configuration, and do not use coverage growth as a substitute for meaningful tests. Run the relevant lint, build, and Jest commands. Never place secrets, credentials, tokens, passwords, or sensitive production data in prompts or generated files. Authentication, authorization, cookie, token rotation, password hashing, and validation changes require explicit security review.
 
 ## Backend validation commands
 
@@ -212,4 +215,4 @@ Before merging AI-assisted backend work, a developer must review the generated c
 
 ## Final rule for AI backend work
 
-Keep backend changes aligned with the repository’s actual NestJS, Drizzle, auth, and validation patterns. Favor the smallest correct fix, preserve the existing security posture, and update migrations and tests when the schema or behavior changes.
+Keep backend changes aligned with the repository’s actual NestJS, Drizzle, auth, and validation patterns. Favor the smallest correct fix, preserve the existing security posture, and update migrations and tests when the schema or behavior changes. When the task is limited to documentation or tests, leave production code unchanged and validate the relevant files or scripts instead.

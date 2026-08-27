@@ -93,6 +93,8 @@ This document is for AI coding agents working in the React frontend. Follow the 
 - Mock the API layer directly when testing auth/session flows, as shown in `AuthProvider.test.tsx`.
 - Do not use MSW because no MSW setup was found in the codebase.
 - Keep tests focused on actual behavior: rendered output, user interaction, auth state, and query behavior.
+- Coverage is generated via `npm run test:coverage`, but this project does not currently enforce a hard coverage threshold. Prefer behavior-first tests over coverage-only changes.
+- If a task is limited to documentation or tests, avoid touching production code unless there is a specific runtime change to validate.
 
 ## Mocking conventions
 
@@ -176,14 +178,14 @@ Do not create a hook when:
 ## Frontend AI workflow
 
 1. Find the existing component/page/feature pattern.
-
-Before merging AI-assisted frontend work, a developer must review the generated code and documentation. Treat AI output and generated tests as untrusted drafts: verify user-visible behavior against the existing routes, API client, auth provider, hooks, and tests, and do not increase coverage without testing meaningful behavior. Run the relevant lint, build/typecheck, and Vitest commands. Never place secrets, credentials, tokens, passwords, or sensitive user data in prompts or generated files. Changes touching authentication, token handling, authorization, or API contracts require explicit security and contract review.
 2. Inspect related hooks, API calls, state, and tests.
 3. Reuse existing conventions.
 4. Implement the smallest change.
 5. Add or update tests.
 6. Run frontend validation.
 7. Review the final diff for unnecessary changes.
+
+Before merging AI-assisted frontend work, a developer must review the generated code and documentation. Treat AI output and generated tests as untrusted drafts: verify user-visible behavior against the existing routes, API client, auth provider, hooks, and tests, and do not increase coverage without testing meaningful behavior. Run the relevant lint, build/typecheck, and Vitest commands. Never place secrets, credentials, tokens, passwords, or sensitive user data in prompts or generated files. Changes touching authentication, token handling, authorization, or API contracts require explicit security and contract review.
 
 ## Frontend validation commands
 

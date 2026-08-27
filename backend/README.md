@@ -31,7 +31,7 @@ See the root [README](../README.md) for the complete environment variable refere
 npm run start:dev
 ```
 
-The API listens on port `3001` by default. Swagger UI is available at `/api/docs` outside production.
+The API listens on port `3001` by default. Swagger UI is available at `/api/docs` outside production. Request logging uses a correlation ID in the request context, and the app logs security events for auth actions without exposing secrets or token material.
 
 ## API surface
 
@@ -56,7 +56,8 @@ Schema definitions are in `src/db/schema.ts`; generated migrations are stored in
 npm run test
 npm run test:cov
 npm run lint
+npm run lint:ci
 npm run build
 ```
 
-Backend tests cover environment validation, authentication, event behavior, and database schema/index guardrails. Backend-specific AI implementation rules are in [AI.md](AI.md).
+Backend tests cover environment validation, authentication, event behavior, and database schema/index guardrails. The CI workflow runs the same lint/test/build flow with the project-level test env variables defined in `.github/workflows/ci.yml`. Coverage reports are generated with `npm run test:cov`, but the repo does not currently enforce a hard coverage threshold. Backend-specific AI implementation rules are in [AI.md](AI.md).
