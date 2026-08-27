@@ -176,6 +176,8 @@ Do not create a hook when:
 ## Frontend AI workflow
 
 1. Find the existing component/page/feature pattern.
+
+Before merging AI-assisted frontend work, a developer must review the generated code and documentation. Treat AI output and generated tests as untrusted drafts: verify user-visible behavior against the existing routes, API client, auth provider, hooks, and tests, and do not increase coverage without testing meaningful behavior. Run the relevant lint, build/typecheck, and Vitest commands. Never place secrets, credentials, tokens, passwords, or sensitive user data in prompts or generated files. Changes touching authentication, token handling, authorization, or API contracts require explicit security and contract review.
 2. Inspect related hooks, API calls, state, and tests.
 3. Reuse existing conventions.
 4. Implement the smallest change.

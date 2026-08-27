@@ -1,56 +1,62 @@
-## Description
+# Calendar API
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-NestJS backend for the calendar APP, using PostgreSQL and Drizzle ORM.
+The backend is a NestJS API for authentication and user-owned calendar events. It uses Drizzle ORM with PostgreSQL. Business rules live in services, while controllers expose validated DTOs and authenticated routes.
 
-## Stack
+## Setup
 
-- NestJS
-- PostgreSQL
-- Drizzle ORM
-- class-validator / class-transform
-
-## Project setup
+From the repository root:
 
 ```bash
-$ npm install
+npm --prefix backend install
 ```
 
-## Features
-- `GET /events`
-- `GET /events/:id`
-- `POST /events`
-- `PATCH /events/:id`
-- `DELETE /events:id`
-- overlap prevention or create/update
-- UTC persistence with explicit event `timezone`
+Create `backend/.env` with at least:
 
-## Enviroment
 ```env
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
-PORT=3001
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/calendar
+JWT_ACCESS_SECRET=replace-with-a-long-local-development-secret
 ```
 
-## Compile and run the project
+Start the local database from the repository root with `docker compose up -d db`, then apply the schema with:
 
 ```bash
-$ npm run start:dev
+npm --prefix backend run migrate:push
 ```
 
-## Run tests
+See the root [README](../README.md) for the complete environment variable reference and full application setup.
+
+## Run
 
 ```bash
-# unit tests
-$ npm run test
-
-# test coverage
-$ npm run test:cov
+npm run start:dev
 ```
 
-## DB
-Generate or apply schema with Drizzle 
+The API listens on port `3001` by default. Swagger UI is available at `/api/docs` outside production.
+
+## API surface
+
+- Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
+- Events: `GET /events`, `GET /events/:id`, `POST /events`, `PATCH /events/:id`, `DELETE /events/:id`
+
+Event routes use JWT authentication and enforce user ownership. Event validation, recurrence rules, overlap prevention, and conflict suggestions are implemented in `EventsService`.
+
+## Database commands
+
 ```bash
-$ npm run drizzle: generate
-$ npm run drizzle:push
+npm run migrate:generate
+npm run migrate:push
+npm run drizzle:studio
 ```
 
+Schema definitions are in `src/db/schema.ts`; generated migrations are stored in `drizzle/`.
+
+## Tests and checks
+
+```bash
+npm run test
+npm run test:cov
+npm run lint
+npm run build
+```
+
+Backend tests cover environment validation, authentication, event behavior, and database schema/index guardrails. Backend-specific AI implementation rules are in [AI.md](AI.md).

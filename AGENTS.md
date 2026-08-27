@@ -12,7 +12,7 @@ This repository is a monorepo for a calendar application split into a React fron
 
 ## Technology stack
 
-- Frontend: React 19, TypeScript, Vite, Material UI, React Router, React Query, i18next, Luxon, Axios-based API wrapper.
+- Frontend: React 19, TypeScript, Vite, Material UI, React Router, React Query, i18next, Luxon, fetch-based API wrapper.
 - Backend: NestJS 11, TypeScript, PostgreSQL, Drizzle ORM, Swagger, Passport + JWT, class-validator/class-transformer, Zod env validation, Helmet, cookie-parser, Luxon.
 - Local development: Docker Compose for PostgreSQL plus the repo-level `npm run dev` to start frontend + backend together.
 
@@ -46,7 +46,7 @@ This repository is a monorepo for a calendar application split into a React fron
 - Controllers are thin and delegate to services; services contain business logic and database access.
 - DTOs drive validation and Swagger metadata.
 - `ValidationPipe` is configured globally with `whitelist` and `forbidNonWhitelisted` enabled.
-- Frontend API calls are centralized in `src/api/*.ts` with shared request/refresh logic in `api-client.ts`.
+- Frontend API calls are centralized in `src/api/*.ts` with shared `fetch` request/refresh logic in `api-client.ts`.
 - Frontend state is mostly local component state plus React Query for server data; the app uses custom hooks for feature logic like `useCalendarEvents`.
 - Database schema is defined centrally in `backend/src/db/schema.ts`; migrations are produced under `backend/drizzle/`.
 
@@ -121,6 +121,13 @@ This repository is a monorepo for a calendar application split into a React fron
 
 ## Rules for AI-assisted development
 
+- AI-generated code and documentation must be reviewed by a developer before it is merged.
+- Treat AI output as untrusted until it has been checked against the implementation, package scripts, tests, and security requirements.
+- Generated code must pass the relevant lint, typecheck/build, and test commands. Add focused tests for meaningful behavior instead of increasing coverage blindly.
+- Existing API contracts, module boundaries, validation rules, and security controls are authoritative. Do not introduce undocumented architectural changes.
+- Never place secrets, credentials, access tokens, refresh tokens, passwords, or sensitive production data in AI prompts or generated artifacts.
+- Security-sensitive changes, especially authentication, authorization, cookies, token rotation, password hashing, and validation, require explicit developer review.
+- Generated documentation must be verified against source code, package scripts, environment validation, controllers, and migrations before it is published.
 - Inspect existing patterns before introducing new ones.
 - Prefer consistency with the existing architecture.
 - Reuse existing utilities, services, hooks, components, and abstractions where appropriate.
@@ -148,6 +155,11 @@ The AI should not:
 
 The AI should:
 
+- Treat all generated output as a draft until a developer verifies it.
+- Run the smallest relevant lint, build/typecheck, and test checks after a change.
+- Add tests for meaningful behavior and avoid blindly optimizing coverage percentages.
+- Keep API contracts and existing architecture authoritative; document any intentional architecture change.
+- Verify documentation claims against the repository rather than guessing.
 - Inspect existing patterns before introducing new ones.
 - Prefer consistency with the existing architecture.
 - Reuse existing utilities, services, hooks, components, and abstractions where appropriate.
