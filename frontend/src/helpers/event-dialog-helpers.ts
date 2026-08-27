@@ -30,7 +30,7 @@ export function getEventDialogDefaults({ event, initialStartUtc, initialEndUtc }
         endLocal: defaultEnd ? utcIsoToZonedInput(defaultEnd, defaultTimeZone) : '',
         eventType: event?.eventType || 'work',
         repeatWeekly: event?.repeatWeekly || false,
-        repeatUntil: event?.reminderAtUtc ? utcIsoToZonedInput(event?.reminderAtUtc, defaultTimeZone) : '',
+        repeatUntil: event?.repeatUntilUtc ? utcIsoToZonedInput(event.repeatUntilUtc, defaultTimeZone) : '',
         reminderEnabled: event?.reminderEnabled || false,
     };
 }
