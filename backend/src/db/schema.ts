@@ -37,7 +37,6 @@ export const sessionsTable = pgTable(
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
   },
   (table) => ({
-    userIdIndex: index('sessions_user_id_idx').on(table.userId),
     expiresAtIndex: index('sessions_expires_at_idx').on(table.expiresAt),
   }),
 );
@@ -68,15 +67,6 @@ export const eventsTable = pgTable(
     userStartUtcIndex: index('events_user_id_start_utc_idx').on(
       table.userId,
       table.startUtc,
-    ),
-    startUtcIndex: index('events_start_utc_idx').on(table.startUtc),
-    repeatUntilUtcIndex: index('events_repeat_until_utc_idx').on(
-      table.repeatUntilUtc,
-    ),
-    activeRangeIndex: index('events_active_range_idx').on(
-      table.startUtc,
-      table.endUtc,
-      table.repeatUntilUtc,
     ),
     validTimeRange: check(
       'events_valid_time_range_chk',
