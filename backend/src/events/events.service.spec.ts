@@ -286,3 +286,186 @@ describe('EventsService ownership queries', () => {
     expect(columns).toContain('user_id');
   });
 });
+
+describe('EventsService range queries', () => {
+  function makeEvent(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'event-id',
+      title: 'Event',
+      startUtc: new Date('2099-01-05T10:00:00.000Z'),
+      endUtc: new Date('2099-01-05T11:00:00.000Z'),
+      timeZone: 'UTC',
+      eventType: 'work',
+      repeatWeekly: false,
+      repeatUntilUtc: null,
+      reminderEnabled: false,
+      ...overrides,
+    };
+  }
+
+  function serviceWithSelectedEvents(events: object[]) {
+    const db = {
+      select: jest.fn().mockReturnValue({
+        from: () => ({
+          where: () => ({
+            orderBy: () => Promise.resolve(events),
+          }),
+        }),
+      }),
+    };
+
+    return { service: new EventsService(db as never), db };
+  }
+
+  it('rejects a range when rangeStartUtc is missing', async () => {
+    const { service } = serviceWithSelectedEvents([]);
+
+    await expect(
+      service.findAll('user-a', { rangeEndUtc: '2099-01-10T00:00:00.000Z' }),
+    ).rejects.toThrow(
+      'Both rangeStartUtc and rangeEndUtc are required when filtering by range',
+    );
+  });
+
+  it('rejects a range when rangeEndUtc is missing', async () => {
+    const { service } = serviceWithSelectedEvents([]);
+
+    await expect(
+      service.findAll('user-a', { rangeStartUtc: '2099-01-01T00:00:00.000Z' }),
+    ).rejects.toThrow(
+      'Both rangeStartUtc and rangeEndUtc are required when filtering by range',
+    );
+  });
+
+  it('rejects invalid dates and ranges whose end precedes their start', async () => {
+    const { service, db } = serviceWithSelectedEvents([]);
+
+    await expect(
+      service.findAll('user-a', {
+        rangeStartUtc: 'not-a-date',
+        rangeEndUtc: '2099-01-10T00:00:00.000Z',
+      }),
+    ).rejects.toThrow('Invalid event date');
+
+    await expect(
+      service.findAll('user-a', {
+        rangeStartUtc: '2099-01-10T00:00:00.000Z',
+        rangeEndUtc: '2099-01-01T00:00:00.000Z',
+      }),
+    ).rejects.toThrow('End time must be after start time');
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it('returns a non-recurring event that overlaps the requested range', async () => {
+    const { service } = serviceWithSelectedEvents([
+      makeEvent({
+        startUtc: new Date('2099-01-05T09:30:00.000Z'),
+        endUtc: new Date('2099-01-05T10:30:00.000Z'),
+      }),
+    ]);
+
+    const result = await service.findAll('user-a', {
+      rangeStartUtc: '2099-01-05T10:00:00.000Z',
+      rangeEndUtc: '2099-01-05T11:00:00.000Z',
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 'event-id',
+      occurrenceId: 'event-id:2099-01-05T09:30:00.000Z',
+      startUtc: '2099-01-05T09:30:00.000Z',
+      endUtc: '2099-01-05T10:30:00.000Z',
+    });
+  });
+
+  it('excludes a non-recurring event outside the requested range', async () => {
+    const { service } = serviceWithSelectedEvents([
+      makeEvent({
+        startUtc: new Date('2099-01-06T10:00:00.000Z'),
+        endUtc: new Date('2099-01-06T11:00:00.000Z'),
+      }),
+    ]);
+
+    const result = await service.findAll('user-a', {
+      rangeStartUtc: '2099-01-05T10:00:00.000Z',
+      rangeEndUtc: '2099-01-05T11:00:00.000Z',
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it('expands a recurring weekly event into occurrences inside the range', async () => {
+    const { service } = serviceWithSelectedEvents([
+      makeEvent({
+        repeatWeekly: true,
+        repeatUntilUtc: new Date('2099-01-26T00:00:00.000Z'),
+      }),
+    ]);
+
+    const result = await service.findAll('user-a', {
+      rangeStartUtc: '2099-01-01T00:00:00.000Z',
+      rangeEndUtc: '2099-02-02T00:00:00.000Z',
+    });
+
+    expect(result).toHaveLength(4);
+    expect(result.map((occurrence) => occurrence.startUtc)).toEqual([
+      '2099-01-05T10:00:00.000Z',
+      '2099-01-12T10:00:00.000Z',
+      '2099-01-19T10:00:00.000Z',
+      '2099-01-26T10:00:00.000Z',
+    ]);
+    expect(
+      result.every((occurrence) => occurrence.endUtc.endsWith('11:00:00.000Z')),
+    ).toBe(true);
+  });
+
+  it('excludes recurring occurrences after the repeat-until boundary', async () => {
+    const { service } = serviceWithSelectedEvents([
+      makeEvent({
+        repeatWeekly: true,
+        repeatUntilUtc: new Date('2099-01-12T00:00:00.000Z'),
+      }),
+    ]);
+
+    const result = await service.findAll('user-a', {
+      rangeStartUtc: '2099-01-13T00:00:00.000Z',
+      rangeEndUtc: '2099-01-20T00:00:00.000Z',
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it('excludes the current event from update conflict lookup', async () => {
+    let conflictPredicate: unknown;
+    let selectCall = 0;
+    const currentEvent = makeEvent();
+    const db = {
+      select: jest.fn().mockReturnValue({
+        from: () => ({
+          where: (predicate: unknown) => {
+            selectCall += 1;
+
+            if (selectCall === 1) {
+              return { limit: () => Promise.resolve([currentEvent]) };
+            }
+
+            conflictPredicate = predicate;
+            return { orderBy: () => Promise.resolve([]) };
+          },
+        }),
+      }),
+      update: jest.fn().mockReturnValue({
+        set: () => ({
+          where: () => ({ returning: () => Promise.resolve([currentEvent]) }),
+        }),
+      }),
+    };
+
+    await new EventsService(db as never).update('user-a', 'event-id', {
+      title: 'Updated event',
+    });
+
+    expect(collectColumnNames(conflictPredicate)).toContain('id');
+    expect(collectColumnNames(conflictPredicate)).toContain('user_id');
+  });
+});
