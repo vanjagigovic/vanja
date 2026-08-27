@@ -6,8 +6,11 @@ import {
   ApiBody,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiConflictResponse,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiOkResponse,
   ApiOperation,
-  ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -18,6 +21,8 @@ import { AuthService } from './auth.service';
 import { AuthResponse } from './auth.types';
 import { LoginAuthDto } from './dto/login-auth-dto';
 import { RegisterAuthDto } from './dto/register-auth-dto';
+import { AuthResponseDto, LogoutResponseDto } from './dto/auth-response-dto';
+import { ApiErrorResponseDto } from '../common/dto/api-error-response-dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -35,21 +40,24 @@ export class AuthController {
   @ApiBody({ type: RegisterAuthDto })
   @ApiCreatedResponse({
     description: 'User registered successfully.',
-    schema: {
-      type: 'object',
-      properties: {
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'user-uuid' },
-            email: { type: 'string', example: 'user@example.com' },
-          },
-        },
-        accessToken: { type: 'string', example: 'eyJhbGciOi...' },
-      },
-    },
+    type: AuthResponseDto,
   })
-  @ApiBadRequestResponse({ description: 'Input validation failed.' })
+  @ApiBadRequestResponse({
+    description: 'Input validation failed.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description: 'Email is already registered.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiForbiddenResponse({
+    description: 'The request origin is not allowed.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error.',
+    type: ApiErrorResponseDto,
+  })
   async register(
     @Body() dto: RegisterAuthDto,
     @Res({ passthrough: true }) response: Response,
@@ -68,24 +76,26 @@ export class AuthController {
       'Authenticates a user and returns an access token. Sets the refresh-token cookie on the auth path.',
   })
   @ApiBody({ type: LoginAuthDto })
-  @ApiResponse({
-    status: 201,
+  @ApiCreatedResponse({
     description: 'User logged in successfully.',
-    schema: {
-      type: 'object',
-      properties: {
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'user-uuid' },
-            email: { type: 'string', example: 'user@example.com' },
-          },
-        },
-        accessToken: { type: 'string', example: 'eyJhbGciOi...' },
-      },
-    },
+    type: AuthResponseDto,
   })
-  @ApiUnauthorizedResponse({ description: 'Invalid credentials.' })
+  @ApiBadRequestResponse({
+    description: 'Input validation failed.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid credentials.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiForbiddenResponse({
+    description: 'The request origin is not allowed.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error.',
+    type: ApiErrorResponseDto,
+  })
   async login(
     @Body() dto: LoginAuthDto,
     @Res({ passthrough: true }) response: Response,
@@ -104,25 +114,21 @@ export class AuthController {
       'Validates the refresh-token cookie and rotates the session, returning a fresh access token.',
   })
   @ApiCookieAuth(env.REFRESH_TOKEN_COOKIE_NAME)
-  @ApiResponse({
-    status: 201,
+  @ApiCreatedResponse({
     description: 'Access token refreshed successfully.',
-    schema: {
-      type: 'object',
-      properties: {
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: 'user-uuid' },
-            email: { type: 'string', example: 'user@example.com' },
-          },
-        },
-        accessToken: { type: 'string', example: 'eyJhbGciOi...' },
-      },
-    },
+    type: AuthResponseDto,
   })
   @ApiUnauthorizedResponse({
     description: 'Refresh token is missing or invalid.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiForbiddenResponse({
+    description: 'The request origin is not allowed.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error.',
+    type: ApiErrorResponseDto,
   })
   async refresh(
     @Req() request: Request,
@@ -142,13 +148,17 @@ export class AuthController {
       'Revokes the refresh token from the cookie and clears the auth cookie.',
   })
   @ApiCookieAuth(env.REFRESH_TOKEN_COOKIE_NAME)
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Logout completed successfully.',
-    schema: {
-      type: 'object',
-      properties: { success: { type: 'boolean', example: true } },
-    },
+    type: LogoutResponseDto,
+  })
+  @ApiForbiddenResponse({
+    description: 'The request origin is not allowed.',
+    type: ApiErrorResponseDto,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error.',
+    type: ApiErrorResponseDto,
   })
   async logout(
     @Req() request: Request,

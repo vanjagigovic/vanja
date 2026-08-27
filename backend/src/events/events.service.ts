@@ -1,10 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, eq, gte, lte, ne, or } from 'drizzle-orm';
+import { and, asc, eq, gt, lt, ne, or } from 'drizzle-orm';
 import { DateTime } from 'luxon';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../db/db.module';
@@ -141,7 +142,9 @@ export class EventsService {
       eventType: updateEventDto.eventType ?? current.eventType,
       repeatWeekly: updateEventDto.repeatWeekly ?? current.repeatWeekly,
       repeatUntilUtc:
-        updateEventDto.repeatUntilUtc ?? current.repeatUntilUtc ?? null,
+        updateEventDto.repeatUntilUtc !== undefined
+          ? updateEventDto.repeatUntilUtc
+          : (current.repeatUntilUtc ?? null),
       reminderEnabled:
         updateEventDto.reminderEnabled ?? current.reminderEnabled,
     });
@@ -185,7 +188,9 @@ export class EventsService {
       title: candidate.title.trim(),
       timeZone: candidate.timeZone.trim(),
       eventType: candidate.eventType.trim(),
-      repeatUntilUtc: candidate.repeatUntilUtc ?? null,
+      repeatUntilUtc: candidate.repeatWeekly
+        ? (candidate.repeatUntilUtc ?? null)
+        : null,
     };
 
     this.validateDateRange(normalized.startUtc, normalized.endUtc);
@@ -256,7 +261,7 @@ export class EventsService {
 
     const suggestion = this.findSuggestedTime(candidate, events);
 
-    throw new BadRequestException({
+    throw new ConflictException({
       message: 'Event overlaps an existing booking',
       conflict: {
         eventId: conflict.baseEventId,
@@ -284,12 +289,12 @@ export class EventsService {
       or(
         and(
           eq(eventsTable.repeatWeekly, false),
-          lte(eventsTable.startUtc, rangeEnd),
-          gte(eventsTable.endUtc, rangeStart),
+          lt(eventsTable.startUtc, rangeEnd),
+          gt(eventsTable.endUtc, rangeStart),
         ),
         and(
           eq(eventsTable.repeatWeekly, true),
-          lte(eventsTable.startUtc, rangeEnd),
+          lt(eventsTable.startUtc, rangeEnd),
         ),
       ),
     ];
