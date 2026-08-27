@@ -9,6 +9,10 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run start:dev",
     "docs:check": "tsx scripts/check-documentation.ts",
+    "git:validate-branch": "tsx scripts/git-workflow.ts branch",
+    "git:validate-commit": "tsx scripts/git-workflow.ts commit",
+    "git:validate-commits": "tsx scripts/git-workflow.ts commits",
+    "git:test": "tsx --test scripts/git-workflow.test.ts",
     "prepare": "husky"
   },
   "lint-staged": {

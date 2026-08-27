@@ -7,6 +7,32 @@ on:
       - main
 
 jobs:
+  git-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Validate branch name
+        run: npm run git:validate-branch -- "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+
+      - name: Validate pull request commit messages
+        if: github.event_name == 'pull_request'
+        run: npm run git:validate-commits -- "origin/${{ github.event.pull_request.base.ref }}..HEAD"
+
+      - name: Test Git workflow validation
+        run: npm run git:test
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

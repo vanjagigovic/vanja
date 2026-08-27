@@ -54,6 +54,10 @@ const RELEVANT_CONFIG_FILES = [
   '.env.example',
   '.github/workflows/ci.yml',
   '.github/workflows/documentation.yml',
+  '.husky/commit-msg',
+  '.husky/pre-commit',
+  '.husky/pre-push',
+  'scripts/git-workflow.ts',
 ];
 
 function safeReadFile(filePath: string): string | null {
