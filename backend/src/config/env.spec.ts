@@ -73,4 +73,57 @@ describe('cookie environment validation', () => {
       }),
     ).toThrow(/AUTH_COOKIE_SECURE must be true in production/);
   });
+
+  it('applies defaults and parses numeric and boolean environment values', () => {
+    const config = parseEnv(baseEnv);
+
+    expect(config.NODE_ENV).toBe('development');
+    expect(config.TRUST_PROXY).toBe(false);
+    expect(config.PORT).toBe(3001);
+    expect(config.JWT_ACCESS_TOKEN_EXPIRES_IN_SECONDS).toBe(900);
+    expect(config.JWT_REFRESH_TOKEN_EXPIRES_IN_SECONDS).toBe(2592000);
+    expect(config.REFRESH_TOKEN_COOKIE_NAME).toBe('refresh_token');
+    expect(config.AUTH_COOKIE_SECURE).toBe(false);
+    expect(config.AUTH_COOKIE_SAME_SITE).toBe('lax');
+  });
+
+  it('rejects configuration when required environment variables are missing', () => {
+    expect(() => parseEnv({})).toThrow();
+  });
+
+  it('rejects production secrets shorter than 64 characters', () => {
+    expect(() =>
+      parseEnv({
+        ...baseEnv,
+        NODE_ENV: 'production',
+        JWT_ACCESS_SECRET: 'a'.repeat(63),
+      }),
+    ).toThrow(/JWT_ACCESS_SECRET must be at least 64 characters in production/);
+  });
+
+  it.each(['change-me', 'local-development-secret', 'password-placeholder'])(
+    'rejects predictable production secret values: %s',
+    (secret) => {
+      expect(() =>
+        parseEnv({
+          ...baseEnv,
+          NODE_ENV: 'production',
+          JWT_ACCESS_SECRET: secret.padEnd(64, 'x'),
+        }),
+      ).toThrow(
+        /JWT_ACCESS_SECRET must not contain a predictable placeholder in production/,
+      );
+    },
+  );
+
+  it('rejects production SameSite=None when Secure is explicitly disabled', () => {
+    expect(() =>
+      parseEnv({
+        ...baseEnv,
+        NODE_ENV: 'production',
+        AUTH_COOKIE_SECURE: 'false',
+        AUTH_COOKIE_SAME_SITE: 'none',
+      }),
+    ).toThrow(/AUTH_COOKIE_SECURE must be true in production/);
+  });
 });

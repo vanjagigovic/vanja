@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -467,5 +468,221 @@ describe('EventsService range queries', () => {
 
     expect(collectColumnNames(conflictPredicate)).toContain('id');
     expect(collectColumnNames(conflictPredicate)).toContain('user_id');
+  });
+});
+
+describe('EventsService CRUD behavior', () => {
+  function makeEvent(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'event-id',
+      title: 'Event',
+      startUtc: new Date('2099-01-05T10:00:00.000Z'),
+      endUtc: new Date('2099-01-05T11:00:00.000Z'),
+      timeZone: 'UTC',
+      eventType: 'work',
+      repeatWeekly: false,
+      repeatUntilUtc: null,
+      reminderEnabled: false,
+      ...overrides,
+    };
+  }
+
+  it('creates a normalized future event and maps the database response', async () => {
+    const createdEvent = makeEvent({ title: 'Normalized event' });
+    let insertedValues: Record<string, unknown> | undefined;
+    const db = {
+      select: jest.fn().mockReturnValue({
+        from: () => ({
+          where: () => ({ orderBy: () => Promise.resolve([]) }),
+        }),
+      }),
+      insert: jest.fn().mockReturnValue({
+        values: (values: Record<string, unknown>) => {
+          insertedValues = values;
+          return { returning: () => Promise.resolve([createdEvent]) };
+        },
+      }),
+    };
+
+    const result = await new EventsService(db as never).create('user-a', {
+      title: '  Normalized event  ',
+      startUtc: '2099-01-05T10:00:00.000Z',
+      endUtc: '2099-01-05T11:00:00.000Z',
+      timeZone: ' UTC ',
+      eventType: 'work',
+      repeatWeekly: false,
+      reminderEnabled: true,
+    });
+
+    expect(insertedValues).toMatchObject({
+      userId: 'user-a',
+      title: 'Normalized event',
+      timeZone: 'UTC',
+      repeatWeekly: false,
+      repeatUntilUtc: null,
+      reminderEnabled: true,
+    });
+    expect(result).toMatchObject({
+      id: 'event-id',
+      title: 'Normalized event',
+      startUtc: '2099-01-05T10:00:00.000Z',
+      endUtc: '2099-01-05T11:00:00.000Z',
+    });
+  });
+
+  it.each([
+    {
+      name: 'invalid dates',
+      dto: {
+        startUtc: 'invalid',
+        endUtc: '2099-01-05T11:00:00.000Z',
+      },
+      message: 'Invalid event date',
+    },
+    {
+      name: 'end before start',
+      dto: {
+        startUtc: '2099-01-05T11:00:00.000Z',
+        endUtc: '2099-01-05T10:00:00.000Z',
+      },
+      message: 'End time must be after start time',
+    },
+    {
+      name: 'past starts',
+      dto: {
+        startUtc: '2020-01-05T10:00:00.000Z',
+        endUtc: '2020-01-05T11:00:00.000Z',
+      },
+      message: 'Events cannot be created in the past',
+    },
+    {
+      name: 'weekly events without a boundary',
+      dto: {
+        startUtc: '2099-01-05T10:00:00.000Z',
+        endUtc: '2099-01-05T11:00:00.000Z',
+        repeatWeekly: true,
+      },
+      message: 'Repeat-until date is required for weekly recurrence',
+    },
+    {
+      name: 'weekly boundaries before the first occurrence',
+      dto: {
+        startUtc: '2099-01-05T10:00:00.000Z',
+        endUtc: '2099-01-05T11:00:00.000Z',
+        repeatWeekly: true,
+        repeatUntilUtc: '2099-01-04T00:00:00.000Z',
+      },
+      message:
+        'Repeat-until date must be on or after the first event occurrence',
+    },
+  ])(
+    'rejects create requests with $name before database access',
+    async ({ dto, message }) => {
+      const db = { select: jest.fn(), insert: jest.fn() };
+
+      await expect(
+        new EventsService(db as never).create('user-a', {
+          title: 'Event',
+          timeZone: 'UTC',
+          eventType: 'work',
+          ...dto,
+        } as never),
+      ).rejects.toThrow(message);
+      expect(db.select).not.toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
+    },
+  );
+
+  it('propagates a database error while checking create conflicts', async () => {
+    const databaseError = new Error('Conflict lookup failed');
+    const db = {
+      select: jest.fn().mockReturnValue({
+        from: () => ({
+          where: () => ({
+            orderBy: async () => {
+              throw databaseError;
+            },
+          }),
+        }),
+      }),
+      insert: jest.fn(),
+    };
+
+    await expect(
+      new EventsService(db as never).create('user-a', {
+        title: 'Event',
+        startUtc: '2099-01-05T10:00:00.000Z',
+        endUtc: '2099-01-05T11:00:00.000Z',
+        timeZone: 'UTC',
+        eventType: 'work',
+      }),
+    ).rejects.toBe(databaseError);
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
+  it('rejects updates for events that do not belong to the user', async () => {
+    const db = {
+      select: jest.fn().mockReturnValue({
+        from: () => ({
+          where: () => ({ limit: () => Promise.resolve([]) }),
+        }),
+      }),
+      update: jest.fn(),
+    };
+
+    await expect(
+      new EventsService(db as never).update('user-a', 'event-id', {
+        title: 'Updated event',
+      }),
+    ).rejects.toThrow('Event not found');
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects updates that overlap another event', async () => {
+    const currentEvent = makeEvent();
+    const conflictingEvent = makeEvent({
+      id: 'other-event-id',
+      title: 'Existing booking',
+      startUtc: new Date('2099-01-05T10:30:00.000Z'),
+      endUtc: new Date('2099-01-05T11:30:00.000Z'),
+    });
+    let selectCall = 0;
+    const db = {
+      select: jest.fn().mockReturnValue({
+        from: () => ({
+          where: () => {
+            selectCall += 1;
+            return selectCall === 1
+              ? { limit: () => Promise.resolve([currentEvent]) }
+              : { orderBy: () => Promise.resolve([conflictingEvent]) };
+          },
+        }),
+      }),
+      update: jest.fn(),
+    };
+
+    await expect(
+      new EventsService(db as never).update('user-a', 'event-id', {
+        startUtc: '2099-01-05T10:00:00.000Z',
+        endUtc: '2099-01-05T11:00:00.000Z',
+      }),
+    ).rejects.toThrow('Event overlaps an existing booking');
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects deletion when the event does not belong to the user', async () => {
+    const db = {
+      select: jest.fn().mockReturnValue({
+        from: () => ({
+          where: () => ({ limit: () => Promise.resolve([]) }),
+        }),
+      }),
+      delete: jest.fn(),
+    };
+
+    await expect(
+      new EventsService(db as never).remove('user-a', 'event-id'),
+    ).rejects.toThrow('Event not found');
+    expect(db.delete).not.toHaveBeenCalled();
   });
 });
