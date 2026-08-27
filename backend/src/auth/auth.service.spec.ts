@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import * as requestContext from '../common/request-context';
 
 describe('AuthService', () => {
   const db = {
@@ -25,6 +26,9 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest
+      .spyOn(requestContext, 'getCorrelationId')
+      .mockReturnValue('test-correlation-id');
   });
 
   function selectResult(result: unknown) {
@@ -78,6 +82,7 @@ describe('AuthService', () => {
 
     const logPayload = JSON.parse(loggerSpy.mock.calls.at(-1)?.[0] as string);
     expect(logPayload).toMatchObject({
+      correlationId: 'test-correlation-id',
       eventType: 'registration',
       outcome: 'succeeded',
       userId: 'user-id',
@@ -120,6 +125,7 @@ describe('AuthService', () => {
 
     const logPayload = JSON.parse(loggerSpy.mock.calls[0][0] as string);
     expect(Object.keys(logPayload).sort()).toEqual([
+      'correlationId',
       'eventType',
       'outcome',
       'timestamp',
@@ -157,6 +163,7 @@ describe('AuthService', () => {
     expect(JSON.stringify(logPayload)).not.toContain('wrong-password');
     expect(JSON.stringify(logPayload)).not.toContain('passwordHash');
     expect(Object.keys(logPayload).sort()).toEqual([
+      'correlationId',
       'eventType',
       'outcome',
       'reason',
@@ -235,6 +242,7 @@ describe('AuthService', () => {
     });
     expect(JSON.stringify(logPayload)).not.toContain('old-refresh-token');
     expect(Object.keys(logPayload).sort()).toEqual([
+      'correlationId',
       'eventType',
       'outcome',
       'reason',
@@ -344,6 +352,7 @@ describe('AuthService', () => {
       userId: 'user-id',
     });
     expect(Object.keys(logPayload).sort()).toEqual([
+      'correlationId',
       'eventType',
       'outcome',
       'reason',
@@ -409,6 +418,7 @@ describe('AuthService', () => {
 
     const logPayload = JSON.parse(loggerSpy.mock.calls[0][0] as string);
     expect(Object.keys(logPayload).sort()).toEqual([
+      'correlationId',
       'eventType',
       'outcome',
       'reason',
@@ -416,5 +426,69 @@ describe('AuthService', () => {
       'userId',
     ]);
     expect(JSON.stringify(logPayload)).not.toContain('must-not-be-logged');
+  });
+
+  it('includes correlationId in all security event logs', async () => {
+    db.select.mockReturnValue(selectResult([]));
+    passwordService.hash.mockResolvedValue('password-hash');
+    db.insert.mockReturnValue({
+      values: jest.fn().mockReturnValue({
+        returning: async () => [{ id: 'user-id', email: 'user@example.com' }],
+      }),
+    });
+    jwtService.signAsync.mockResolvedValue('access-token');
+
+    await service.register({
+      email: 'user@example.com',
+      password: 'password123',
+    });
+
+    const logPayload = JSON.parse(loggerSpy.mock.calls.at(-1)?.[0] as string);
+    expect(logPayload).toHaveProperty('correlationId', 'test-correlation-id');
+    expect(logPayload).toHaveProperty('eventType', 'registration');
+  });
+
+  it('logs cleanup job completion with deleted session count', async () => {
+    db.delete.mockReturnValue({
+      where: jest.fn().mockReturnValue({
+        returning: async () => [
+          { id: 'session-1' },
+          { id: 'session-2' },
+          { id: 'session-3' },
+        ],
+      }),
+    });
+
+    await service.cleanupExpiredSessions();
+
+    expect(loggerSpy).toHaveBeenCalled();
+    const logPayload = JSON.parse(loggerSpy.mock.calls.at(-1)?.[0] as string);
+    expect(logPayload).toMatchObject({
+      message: 'Session cleanup completed',
+      deletedCount: 3,
+    });
+    expect(logPayload).toHaveProperty('timestamp');
+  });
+
+  it('logs cleanup job error if deletion fails', async () => {
+    const errorSpy = jest.spyOn(Logger.prototype, 'error');
+    db.delete.mockReturnValue({
+      where: jest.fn().mockReturnValue({
+        returning: jest
+          .fn()
+          .mockRejectedValue(new Error('Database error') as never),
+      }),
+    });
+
+    await service.cleanupExpiredSessions();
+
+    expect(errorSpy).toHaveBeenCalled();
+    const logPayload = JSON.parse(errorSpy.mock.calls[0][0] as string);
+    expect(logPayload).toMatchObject({
+      message: 'Session cleanup failed',
+    });
+    expect(logPayload).toHaveProperty('error', 'Database error');
+    expect(logPayload).toHaveProperty('timestamp');
+    errorSpy.mockRestore();
   });
 });

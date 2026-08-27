@@ -1,21 +1,24 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   ArgumentsHost,
   Catch,
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import { getCorrelationId, getUserId } from '../request-context';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<{
       status: (statusCode: number) => { json: (body: unknown) => void };
     }>();
-    const request = ctx.getRequest<{ url: string }>();
+    const request = ctx.getRequest<Request>();
 
     const status =
       exception instanceof HttpException
@@ -23,6 +26,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const errorBody = this.getPublicErrorBody(exception);
+    const correlationId = getCorrelationId();
+    const userId = getUserId();
+
+    // Log error with context
+    this.logError({
+      timestamp: new Date().toISOString(),
+      correlationId,
+      method: request.method,
+      path: request.path,
+      status,
+      userId,
+      message:
+        typeof errorBody.message === 'string'
+          ? errorBody.message
+          : Array.isArray(errorBody.message)
+            ? errorBody.message.join('; ')
+            : 'Unknown error',
+    });
 
     response.status(status).json({
       statusCode: status,
@@ -30,6 +51,32 @@ export class HttpExceptionFilter implements ExceptionFilter {
       path: request.url,
       ...errorBody,
     });
+  }
+
+  private logError(context: {
+    timestamp: string;
+    correlationId?: string;
+    method: string;
+    path: string;
+    status: number;
+    userId?: string;
+    message: string;
+  }): void {
+    const payload = {
+      timestamp: context.timestamp,
+      ...(context.correlationId && { correlationId: context.correlationId }),
+      method: context.method,
+      path: context.path,
+      status: context.status,
+      ...(context.userId && { userId: context.userId }),
+      message: context.message,
+    };
+
+    if (context.status >= 500) {
+      this.logger.error(payload);
+    } else {
+      this.logger.warn(payload);
+    }
   }
 
   private getPublicErrorBody(exception: unknown) {
