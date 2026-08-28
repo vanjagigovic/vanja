@@ -40,6 +40,7 @@ export function useEventDialogState({
   const [timeZone, setTimeZone] = useState(defaults.defaultTimeZone);
   const [startLocal, setStartLocal] = useState(defaults.startLocal);
   const [endLocal, setEndLocal] = useState(defaults.endLocal);
+  const [isAllDay, setIsAllDay] = useState(defaults.isAllDay);
   const [eventType, setEventType] = useState(defaults.eventType);
   const [repeatWeekly, setRepeatWeekly] = useState(defaults.repeatWeekly);
   const [repeatUntil, setRepeatUntil] = useState(defaults.repeatUntil);
@@ -63,12 +64,13 @@ export function useEventDialogState({
       timeZone,
       startLocal,
       endLocal,
+      isAllDay,
       eventType,
       repeatWeekly,
       repeatUntil,
       reminderEnabled,
     }).startUtc).getTime();
-  },[title, timeZone, startLocal, endLocal, eventType, repeatWeekly, repeatUntil, reminderEnabled])
+  },[title, timeZone, startLocal, endLocal, isAllDay, eventType, repeatWeekly, repeatUntil, reminderEnabled])
 
   const validateRequiredFields = useCallback((): EventDialogFieldErrors => {
     const nextErrors: EventDialogFieldErrors = {};
@@ -77,11 +79,11 @@ export function useEventDialogState({
       nextErrors.title = "Title is required";
     }
 
-    if (!startLocal) {
+    if (!isAllDay && !startLocal) {
       nextErrors.startLocal = "Start date is required";
     }
 
-    if (!endLocal) {
+    if (!isAllDay && !endLocal) {
       nextErrors.endLocal = "End date is required";
     }
 
@@ -91,6 +93,7 @@ export function useEventDialogState({
 
     if (
       !event &&
+      !isAllDay &&
       startLocal &&
       !Number.isNaN(new Date(candidateStartTime).getTime()) &&
       new Date(candidateStartTime).getTime() < Date.now()
@@ -106,24 +109,27 @@ export function useEventDialogState({
     repeatWeekly,
     repeatUntil,
     event,
+    isAllDay,
     candidateStartTime
   ]);
 
   const handleTimeZoneChange = useCallback(
     (nextZone: string) => {
-      setStartLocal((currentValue: string) =>
-        convertedZoneDateTime(currentValue, timeZone, nextZone),
-      );
-      setEndLocal((currentValue: string) =>
-        convertedZoneDateTime(currentValue, timeZone, nextZone),
-      );
+      if (!isAllDay) {
+        setStartLocal((currentValue: string) =>
+          convertedZoneDateTime(currentValue, timeZone, nextZone),
+        );
+        setEndLocal((currentValue: string) =>
+          convertedZoneDateTime(currentValue, timeZone, nextZone),
+        );
+      }
       setRepeatUntil((currentValue: string) =>
         convertedZoneDateTime(currentValue, timeZone, nextZone),
       );
 
       setTimeZone(nextZone);
     },
-    [timeZone],
+    [isAllDay, timeZone],
   );
 
   const payload: EventPayload = buildEventPayload({
@@ -135,6 +141,7 @@ export function useEventDialogState({
     repeatWeekly,
     repeatUntil,
     reminderEnabled,
+    isAllDay,
   });
 
  const applySuggestedTime = useCallback(
@@ -218,6 +225,8 @@ export function useEventDialogState({
     repeatUntil,
     setRepeatUntil,
     reminderEnabled,
+    isAllDay,
+    setIsAllDay,
     setReminderEnabled,
     error,
     suggestion,

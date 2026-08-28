@@ -122,6 +122,8 @@ export function EventDialog({
     setRepeatUntil,
     reminderEnabled,
     setReminderEnabled,
+    isAllDay,
+    setIsAllDay,
     error,
     suggestion,
     fieldErrors,
@@ -177,6 +179,18 @@ export function EventDialog({
 
   async function handleConfirmDelete() {
     await handleDelete();
+  }
+
+  function handleAllDayChange(enabled: boolean) {
+    setIsAllDay(enabled);
+    if (enabled) {
+      setStartLocal((value) => value.slice(0, 10));
+      setEndLocal((value) => value.slice(0, 10));
+      return;
+    }
+
+    setStartLocal((value) => value ? `${value.slice(0, 10)}T00:00` : value);
+    setEndLocal((value) => value ? `${value.slice(0, 10)}T00:00` : value);
   }
 
   return (
@@ -289,7 +303,13 @@ export function EventDialog({
               </Select>
             </FormControl>
 
-            <Stack
+            <FormControlLabel
+              control={<Checkbox checked={isAllDay} onChange={(e) => handleAllDayChange(e.target.checked)} />}
+              label={t("allDayEvent")}
+              sx={eventStyles.eventDialogFormControlLabelSx}
+            />
+
+            {!isAllDay ? <Stack
               direction={eventStyles.eventDialogDateRowDirection}
               spacing={2}
             >
@@ -324,7 +344,7 @@ export function EventDialog({
                   },
                 }}
               />
-            </Stack>
+            </Stack> : null}
 
             <Box sx={eventStyles.eventDialogOptionsBoxSx}>
               <Stack spacing={eventStyles.eventDialogOptionsStackSpacing}>
