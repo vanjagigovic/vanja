@@ -18,6 +18,7 @@ function event(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     title: "  Team planning  ",
     startUtc: "2026-04-10T08:00:00.000Z",
     endUtc: "2026-04-10T09:30:00.000Z",
+    isAllDay: false,
     timeZone: BELGRADE,
     eventType: "work",
     repeatWeekly: true,
@@ -46,6 +47,7 @@ describe("getEventDialogDefaults", () => {
       repeatWeekly: true,
       repeatUntil: "2026-06-26T10:00",
       reminderEnabled: true,
+      isAllDay: false,
     });
   });
 
@@ -71,6 +73,7 @@ describe("getEventDialogDefaults", () => {
       repeatWeekly: false,
       repeatUntil: "",
       reminderEnabled: false,
+      isAllDay: false,
     });
   });
 
@@ -143,6 +146,7 @@ describe("buildEventPayload", () => {
       title: "Team planning",
       startUtc: "2026-04-10T08:00:00.000Z",
       endUtc: "2026-04-10T09:30:00.000Z",
+      isAllDay: false,
       timeZone: BELGRADE,
       eventType: "travel",
       repeatWeekly: true,
@@ -167,6 +171,7 @@ describe("buildEventPayload", () => {
       title: "Single event",
       startUtc: "2026-04-10T10:00:00.000Z",
       endUtc: "2026-04-10T11:00:00.000Z",
+      isAllDay: false,
       timeZone: UTC,
       eventType: "personal",
       repeatWeekly: false,
@@ -176,5 +181,36 @@ describe("buildEventPayload", () => {
     expect(
       buildEventPayload({ ...values, repeatWeekly: true, repeatUntil: "" }),
     ).toMatchObject({ repeatWeekly: true, repeatUntilUtc: undefined });
+  });
+
+  it("keeps an all-day date stable across timezone changes", () => {
+    const allDayEvent = event({
+      isAllDay: true,
+      startUtc: "2026-04-10T00:00:00.000Z",
+      endUtc: "2026-04-12T00:00:00.000Z",
+    });
+
+    expect(getEventDialogDefaults({ event: allDayEvent })).toMatchObject({
+      isAllDay: true,
+      startLocal: "2026-04-10",
+      endLocal: "2026-04-11",
+    });
+    expect(
+      buildEventPayload({
+        title: "Date range",
+        startLocal: "2026-04-10",
+        endLocal: "2026-04-11",
+        isAllDay: true,
+        timeZone: NEW_YORK,
+        eventType: "holiday",
+        repeatWeekly: false,
+        repeatUntil: "",
+        reminderEnabled: false,
+      }),
+    ).toMatchObject({
+      startUtc: "2026-04-10T00:00:00.000Z",
+      endUtc: "2026-04-12T00:00:00.000Z",
+      isAllDay: true,
+    });
   });
 });

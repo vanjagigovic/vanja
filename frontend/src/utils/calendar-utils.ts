@@ -126,6 +126,10 @@ export function formatEventRange(
   event: CalendarEvent,
   timeZone: string,
 ): string {
+  if (event.isAllDay) {
+    return "All day";
+  }
+
   const start = DateTime.fromISO(event.startUtc, { zone: "utc" }).setZone(
     timeZone,
   );
@@ -138,6 +142,10 @@ export function formatDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
     date.getDate(),
   ).padStart(2, "0")}`;
+}
+
+function calendarDateKey(date: Date, timeZone: string): string {
+  return DateTime.fromJSDate(date).setZone(timeZone).toFormat('yyyy-LL-dd');
 }
 
 export function toLocalInputValue(date: Date): string {
@@ -166,6 +174,18 @@ export function eventOccursOnDateInZone(
   date: Date,
   timeZone: string,
 ): boolean {
+  if (event.isAllDay) {
+    const dateKey = calendarDateKey(date, timeZone);
+    const startKey = DateTime.fromISO(event.startUtc, { zone: 'utc' }).toFormat(
+      'yyyy-LL-dd',
+    );
+    const endKey = DateTime.fromISO(event.endUtc, { zone: 'utc' }).toFormat(
+      'yyyy-LL-dd',
+    );
+
+    return dateKey >= startKey && dateKey < endKey;
+  }
+
   const startOfDay = DateTime.fromJSDate(date).setZone(timeZone).startOf("day");
 
   const endOfDay = startOfDay.plus({ days: 1 });
@@ -181,6 +201,13 @@ export function getEventBlockMetrics(
   date: Date,
   timeZone: string,
 ) {
+  if (event.isAllDay) {
+    return {
+      startMinutes: 0,
+      endMinutes: 24 * 60,
+    };
+  }
+
   const startOfDay = DateTime.fromJSDate(date).setZone(timeZone).startOf("day");
 
   const endOfDay = startOfDay.plus({ days: 1 });

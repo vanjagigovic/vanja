@@ -488,7 +488,10 @@ describe('EventsService CRUD behavior', () => {
   }
 
   it('creates a normalized future event and maps the database response', async () => {
-    const createdEvent = makeEvent({ title: 'Normalized event' });
+    const createdEvent = makeEvent({
+      title: 'Normalized event',
+      isAllDay: false,
+    });
     let insertedValues: Record<string, unknown> | undefined;
     const db = {
       select: jest.fn().mockReturnValue({
@@ -527,7 +530,60 @@ describe('EventsService CRUD behavior', () => {
       title: 'Normalized event',
       startUtc: '2099-01-05T10:00:00.000Z',
       endUtc: '2099-01-05T11:00:00.000Z',
+      isAllDay: false,
     });
+  });
+
+  it('persists a canonical all-day date range and returns its explicit flag', async () => {
+    const createdEvent = makeEvent({
+      startUtc: new Date('2099-01-05T00:00:00.000Z'),
+      endUtc: new Date('2099-01-07T00:00:00.000Z'),
+      isAllDay: true,
+    });
+    let insertedValues: Record<string, unknown> | undefined;
+    const db = {
+      select: jest.fn().mockReturnValue({
+        from: () => ({ where: () => ({ orderBy: () => Promise.resolve([]) }) }),
+      }),
+      insert: jest.fn().mockReturnValue({
+        values: (values: Record<string, unknown>) => {
+          insertedValues = values;
+          return { returning: () => Promise.resolve([createdEvent]) };
+        },
+      }),
+    };
+
+    const result = await new EventsService(db as never).create('user-a', {
+      title: 'Two day holiday',
+      startUtc: '2099-01-05T00:00:00.000Z',
+      endUtc: '2099-01-07T00:00:00.000Z',
+      isAllDay: true,
+      timeZone: 'America/New_York',
+      eventType: 'holiday',
+    });
+
+    expect(insertedValues).toMatchObject({ isAllDay: true });
+    expect(result).toMatchObject({
+      isAllDay: true,
+      startUtc: '2099-01-05T00:00:00.000Z',
+      endUtc: '2099-01-07T00:00:00.000Z',
+    });
+  });
+
+  it('rejects all-day bounds that are not UTC-midnight whole days', async () => {
+    const db = { select: jest.fn(), insert: jest.fn() };
+
+    await expect(
+      new EventsService(db as never).create('user-a', {
+        title: 'Invalid date event',
+        startUtc: '2099-01-05T01:00:00.000Z',
+        endUtc: '2099-01-06T01:00:00.000Z',
+        isAllDay: true,
+        timeZone: 'UTC',
+        eventType: 'holiday',
+      }),
+    ).rejects.toThrow('All-day events must span one or more UTC calendar days');
+    expect(db.insert).not.toHaveBeenCalled();
   });
 
   it.each([

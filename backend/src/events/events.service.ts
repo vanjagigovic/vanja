@@ -23,6 +23,7 @@ type MutableEventShape = {
   title: string;
   startUtc: string;
   endUtc: string;
+  isAllDay: boolean;
   timeZone: string;
   eventType: string;
   repeatWeekly: boolean;
@@ -99,6 +100,7 @@ export class EventsService {
       title: createEventDto.title,
       startUtc: createEventDto.startUtc,
       endUtc: createEventDto.endUtc,
+      isAllDay: createEventDto.isAllDay ?? false,
       timeZone: createEventDto.timeZone,
       eventType: createEventDto.eventType,
       repeatWeekly: createEventDto.repeatWeekly ?? false,
@@ -106,7 +108,11 @@ export class EventsService {
       reminderEnabled: createEventDto.reminderEnabled ?? false,
     });
 
-    this.validateNotInPast(candidate.startUtc);
+    this.validateNotInPast(
+      candidate.startUtc,
+      candidate.endUtc,
+      candidate.isAllDay,
+    );
 
     await this.ensureNoOverlap(userId, candidate);
 
@@ -117,6 +123,7 @@ export class EventsService {
         title: candidate.title,
         startUtc: new Date(candidate.startUtc),
         endUtc: new Date(candidate.endUtc),
+        isAllDay: candidate.isAllDay,
         timeZone: candidate.timeZone,
         eventType: candidate.eventType,
         repeatWeekly: candidate.repeatWeekly,
@@ -138,6 +145,7 @@ export class EventsService {
       title: updateEventDto.title ?? current.title,
       startUtc: updateEventDto.startUtc ?? current.startUtc,
       endUtc: updateEventDto.endUtc ?? current.endUtc,
+      isAllDay: updateEventDto.isAllDay ?? current.isAllDay,
       timeZone: updateEventDto.timeZone ?? current.timeZone,
       eventType: updateEventDto.eventType ?? current.eventType,
       repeatWeekly: updateEventDto.repeatWeekly ?? current.repeatWeekly,
@@ -157,6 +165,7 @@ export class EventsService {
         title: candidate.title,
         startUtc: new Date(candidate.startUtc),
         endUtc: new Date(candidate.endUtc),
+        isAllDay: candidate.isAllDay,
         timeZone: candidate.timeZone,
         eventType: candidate.eventType,
         repeatWeekly: candidate.repeatWeekly,
@@ -194,6 +203,9 @@ export class EventsService {
     };
 
     this.validateDateRange(normalized.startUtc, normalized.endUtc);
+    if (normalized.isAllDay) {
+      this.validateAllDayRange(normalized.startUtc, normalized.endUtc);
+    }
     this.validateRepeatRule(normalized);
 
     return normalized;
@@ -212,8 +224,33 @@ export class EventsService {
     }
   }
 
-  private validateNotInPast(startUtc: string) {
-    if (new Date(startUtc).getTime() < Date.now()) {
+  private validateAllDayRange(startUtc: string, endUtc: string) {
+    const start = DateTime.fromISO(startUtc, { zone: 'utc' });
+    const end = DateTime.fromISO(endUtc, { zone: 'utc' });
+
+    if (
+      !start.isValid ||
+      !end.isValid ||
+      start.hour !== 0 ||
+      start.minute !== 0 ||
+      start.second !== 0 ||
+      start.millisecond !== 0 ||
+      end.diff(start, 'days').days < 1 ||
+      !Number.isInteger(end.diff(start, 'days').days)
+    ) {
+      throw new BadRequestException(
+        'All-day events must span one or more UTC calendar days',
+      );
+    }
+  }
+
+  private validateNotInPast(
+    startUtc: string,
+    endUtc: string,
+    isAllDay: boolean,
+  ) {
+    const boundaryUtc = isAllDay ? endUtc : startUtc;
+    if (new Date(boundaryUtc).getTime() < Date.now()) {
       throw new BadRequestException('Events cannot be created in the past');
     }
   }
@@ -578,6 +615,7 @@ export class EventsService {
       title: event.title,
       startUtc: event.startUtc.toISOString(),
       endUtc: event.endUtc.toISOString(),
+      isAllDay: event.isAllDay,
       timeZone: event.timeZone,
       eventType: event.eventType as EventResponseDto['eventType'],
       repeatWeekly: event.repeatWeekly,
@@ -602,6 +640,7 @@ export class EventsService {
       title: event.title,
       startUtc: event.startUtc.toISOString(),
       endUtc: event.endUtc.toISOString(),
+      isAllDay: event.isAllDay,
       timeZone: event.timeZone,
       eventType: event.eventType,
       repeatWeekly: event.repeatWeekly,

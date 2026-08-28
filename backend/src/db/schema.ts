@@ -51,6 +51,7 @@ export const eventsTable = pgTable(
     title: text('title').notNull(),
     startUtc: timestamp('start_time', { withTimezone: true }).notNull(),
     endUtc: timestamp('end_time', { withTimezone: true }).notNull(),
+    isAllDay: boolean('is_all_day').default(false).notNull(),
     timeZone: text('time_zone').notNull(),
     eventType: text('event_type').notNull(),
     reminderEnabled: boolean('reminder_enabled').default(false).notNull(),

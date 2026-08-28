@@ -26,6 +26,7 @@ void i18next.use(initReactI18next).init({
                 noUpcomingEventsToday: "No more events today",
                 eventType: 'Event type',
                 repeatWeekly: 'Repeat Weekly',
+                allDayEvent: 'All-day event',
                 repeatUntil: 'Repeat Until',
                 reminderEnabled: 'Remind 10 minutes before',
                 createEvent: 'New event',

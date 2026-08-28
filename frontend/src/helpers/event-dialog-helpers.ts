@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon';
 import { utcIsoToZonedInput, zonedInputToUtcIso } from '../utils/calendar-utils';
 import type { CalendarEvent, EventPayload, EventType } from '../types/types';
 
@@ -11,6 +12,7 @@ interface EventDialogFormValues {
     title: string;
     startLocal: string;
     endLocal: string;
+    isAllDay?: boolean;
     timeZone: string;
     eventType: EventType;
     repeatWeekly: boolean;
@@ -26,8 +28,13 @@ export function getEventDialogDefaults({ event, initialStartUtc, initialEndUtc }
     return {
         defaultTimeZone,
         title: event?.title || '',
-        startLocal: utcIsoToZonedInput(event?.startUtc || defaultStart, defaultTimeZone),
-        endLocal: defaultEnd ? utcIsoToZonedInput(defaultEnd, defaultTimeZone) : '',
+            startLocal: event?.isAllDay
+                ? utcIsoToDateInput(event.startUtc)
+                : utcIsoToZonedInput(event?.startUtc || defaultStart, defaultTimeZone),
+            endLocal: event?.isAllDay
+                ? utcIsoToDateInput(event.endUtc, true)
+                : defaultEnd ? utcIsoToZonedInput(defaultEnd, defaultTimeZone) : '',
+            isAllDay: event?.isAllDay ?? false,
         eventType: event?.eventType || 'work',
         repeatWeekly: event?.repeatWeekly || false,
         repeatUntil: event?.repeatUntilUtc ? utcIsoToZonedInput(event.repeatUntilUtc, defaultTimeZone) : '',
@@ -49,6 +56,7 @@ export function buildEventPayload(values: EventDialogFormValues): EventPayload {
         timeZone,
         startLocal,
         endLocal,
+        isAllDay = false,
         eventType,
         repeatWeekly,
         repeatUntil,
@@ -56,12 +64,26 @@ export function buildEventPayload(values: EventDialogFormValues): EventPayload {
     } = values;
     return {
         title: title.trim(),
-        startUtc: zonedInputToUtcIso(startLocal, timeZone),
-        endUtc: zonedInputToUtcIso(endLocal, timeZone),
+        startUtc: isAllDay ? dateInputToUtcIso(startLocal) : zonedInputToUtcIso(startLocal, timeZone),
+        endUtc: isAllDay ? dateInputToUtcIso(endLocal, true) : zonedInputToUtcIso(endLocal, timeZone),
+        isAllDay,
         timeZone,
         eventType,
         repeatWeekly,
         repeatUntilUtc: repeatWeekly && repeatUntil ? zonedInputToUtcIso(repeatUntil, timeZone) : undefined,
         reminderEnabled,
     }
+}
+
+function utcIsoToDateInput(utcIso: string, exclusiveEnd = false): string {
+    return DateTime.fromISO(utcIso, { zone: 'utc' })
+        .minus(exclusiveEnd ? { days: 1 } : {})
+        .toFormat('yyyy-LL-dd');
+}
+
+function dateInputToUtcIso(dateValue: string, exclusiveEnd = false): string {
+    return DateTime.fromFormat(dateValue, 'yyyy-LL-dd', { zone: 'utc' })
+        .plus(exclusiveEnd ? { days: 1 } : {})
+        .toUTC()
+        .toISO() as string;
 }

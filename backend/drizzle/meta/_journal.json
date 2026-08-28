@@ -50,6 +50,13 @@
       "when": 1787829408254,
       "tag": "0006_bored_ogun",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787915579063,
+      "tag": "0007_greedy_fallen_one",
+      "breakpoints": true
     }
   ]
 }

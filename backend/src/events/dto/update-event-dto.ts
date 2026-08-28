@@ -38,6 +38,11 @@ export class UpdateEventDto {
   @IsDateString()
   endUtc?: string;
 
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  isAllDay?: boolean;
+
   @ApiPropertyOptional({ example: 'Europe/London' })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
