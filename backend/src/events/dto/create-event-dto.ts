@@ -35,6 +35,14 @@ export class CreateEventDto {
   @IsDateString()
   endUtc!: string;
 
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Whether this is a date-only event using UTC midnight bounds.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isAllDay?: boolean;
+
   @ApiProperty({ example: 'Europe/London', description: 'Event time zone.' })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()

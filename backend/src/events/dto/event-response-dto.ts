@@ -10,6 +10,8 @@ export class EventResponseDto {
   startUtc!: string;
   @ApiProperty({ example: '2026-08-26T10:00:00.000Z' })
   endUtc!: string;
+  @ApiProperty({ example: false })
+  isAllDay!: boolean;
   @ApiProperty({ example: 'Europe/London' })
   timeZone!: string;
   @ApiProperty({ enum: EVENT_TYPES, example: 'work' })
