@@ -13,6 +13,7 @@ export interface EventResponseDto {
   title: string;
   startUtc: string;
   endUtc: string;
+  isAllDay: boolean;
   timeZone: string;
   eventType: EventApiType;
   repeatWeekly: boolean;
@@ -30,6 +31,7 @@ export interface CreateEventRequest {
   title: string;
   startUtc: string;
   endUtc: string;
+  isAllDay: boolean;
   timeZone: string;
   eventType: EventApiType;
   repeatWeekly?: boolean;
@@ -41,6 +43,7 @@ export interface UpdateEventRequest {
   title?: string;
   startUtc?: string;
   endUtc?: string;
+  isAllDay?: boolean;
   timeZone?: string;
   eventType?: EventApiType;
   repeatWeekly?: boolean;
