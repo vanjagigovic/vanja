@@ -40,6 +40,7 @@ function eventAt(
     title: "Planning session",
     startUtc,
     endUtc,
+    isAllDay: false,
     timeZone: UTC,
     eventType: "work",
     repeatWeekly: false,
@@ -219,6 +220,20 @@ describe("calendar date utilities", () => {
       expect(formatEventRange(event, BELGRADE)).toBe("10:00 - 11:30");
     });
 
+    it("formats all-day events without converting their UTC date into a time", () => {
+      const event = eventAt(
+        "2026-04-10T00:00:00.000Z",
+        "2026-04-11T00:00:00.000Z",
+        { isAllDay: true },
+      );
+
+      expect(formatEventRange(event, NEW_YORK)).toBe("All day");
+      expect(getEventBlockMetrics(event, dateAtUtc("2026-04-10T12:00:00.000Z"), NEW_YORK)).toEqual({
+        startMinutes: 0,
+        endMinutes: 24 * 60,
+      });
+    });
+
     it("converts local input to UTC and converts UTC back to local input", () => {
       const localValue = "2026-04-10T10:00";
       const utcValue = zonedInputToUtcIso(localValue, BELGRADE);
@@ -249,6 +264,29 @@ describe("calendar date utilities", () => {
           UTC,
         ),
       ).toBe(true);
+    });
+
+    it("uses UTC date keys for all-day events regardless of viewer timezone", () => {
+      const allDay = eventAt(
+        "2026-04-10T00:00:00.000Z",
+        "2026-04-11T00:00:00.000Z",
+        { isAllDay: true },
+      );
+
+      expect(
+        eventOccursOnDateInZone(
+          allDay,
+          dateAtUtc("2026-04-10T12:00:00.000Z"),
+          NEW_YORK,
+        ),
+      ).toBe(true);
+      expect(
+        eventOccursOnDateInZone(
+          allDay,
+          dateAtUtc("2026-04-09T12:00:00.000Z"),
+          BELGRADE,
+        ),
+      ).toBe(false);
     });
 
     it("excludes events outside the day and events ending at its start", () => {
